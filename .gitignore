@@ -1,0 +1,29 @@
+## .NET / Visual Studio
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.userprefs
+
+## Build artifacts
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+
+## NuGet
+*.nupkg
+.nuget/
+
+## Logs
+logs/
+*.log
+
+## Secrets / environment
+appsettings.Development.json
+*.env
+
+## OS
+.DS_Store
+Thumbs.db
