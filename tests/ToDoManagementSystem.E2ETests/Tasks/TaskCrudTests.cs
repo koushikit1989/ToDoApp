@@ -186,13 +186,22 @@ public class TaskCrudTests : PlaywrightTestBase
         await Page.Locator("#tasksBody tr").First.Locator("button.btn-outline-danger").ClickAsync();
         await Page.WaitForSelectorAsync("#deleteModal.show", new() { Timeout = 5_000 });
 
-        // Click confirm and wait for the DELETE API response, then the subsequent loadTasks
+        // Click confirm, wait for DELETE then the reload GET that follows
         await Page.RunAndWaitForResponseAsync(
             async () => await Page.ClickAsync("#confirmDeleteBtn"),
             r => r.Request.Method == "DELETE" && r.Url.Contains("/api/tasks/"),
             new() { Timeout = 8_000 }
         );
+        // Give JS a tick to start the follow-up loadTasks() GET, then wait for idle
+        await Page.WaitForFunctionAsync("() => document.getElementById('tasksLoading') !== null");
         await Page.WaitForLoadStateAsync(Microsoft.Playwright.LoadState.NetworkIdle);
+
+        // Poll until the UI reflects the deletion (up to 5 s)
+        await Page.WaitForFunctionAsync(
+            $"() => document.querySelectorAll('#tasksBody tr').length < {before} || " +
+            "!document.getElementById('tasksEmpty').classList.contains('d-none')",
+            null, new() { Timeout = 5_000 }
+        );
 
         int after = await Page.Locator("#tasksBody tr").CountAsync();
         bool emptyShown = await Page.Locator("#tasksEmpty").IsVisibleAsync();
