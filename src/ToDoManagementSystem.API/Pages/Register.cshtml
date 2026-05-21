@@ -1,0 +1,99 @@
+@page
+@model RegisterModel
+@{
+    ViewData["Title"] = "Register";
+    Layout = "_Layout";
+}
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-4">
+        <div class="card p-4">
+            <div class="text-center mb-4">
+                <i class="bi bi-person-plus text-primary" style="font-size:2.5rem"></i>
+                <h4 class="mt-2 fw-bold">Create Account</h4>
+                <p class="text-muted small">Start managing your tasks today</p>
+            </div>
+
+            <div id="alertBox" class="alert d-none" role="alert"></div>
+
+            <form id="registerForm">
+                <div class="mb-3">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" class="form-control" id="fullName" placeholder="John Doe" required />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Email address</label>
+                    <input type="email" class="form-control" id="email" placeholder="you@example.com" required />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Password</label>
+                    <input type="password" class="form-control" id="password" placeholder="Min 8 chars, upper, lower, digit, special" required />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Confirm Password</label>
+                    <input type="password" class="form-control" id="confirmPassword" placeholder="••••••••" required />
+                </div>
+                <button type="submit" class="btn btn-primary w-100" id="registerBtn">
+                    <span id="regSpinner" class="spinner-border spinner-border-sm d-none me-1"></span>
+                    Create Account
+                </button>
+            </form>
+
+            <hr class="my-3" />
+            <p class="text-center small mb-0">
+                Already have an account? <a href="/login">Sign in</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    if (localStorage.getItem('access_token')) window.location.href = '/dashboard';
+
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('registerBtn');
+        const spinner = document.getElementById('regSpinner');
+        const alertBox = document.getElementById('alertBox');
+
+        btn.disabled = true;
+        spinner.classList.remove('d-none');
+        alertBox.classList.add('d-none');
+
+        try {
+            const res = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fullName: document.getElementById('fullName').value,
+                    email: document.getElementById('email').value,
+                    password: document.getElementById('password').value,
+                    confirmPassword: document.getElementById('confirmPassword').value
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                localStorage.setItem('access_token', data.data.accessToken);
+                localStorage.setItem('refresh_token', data.data.refreshToken);
+                localStorage.setItem('user_info', JSON.stringify({
+                    fullName: data.data.fullName,
+                    email: data.data.email,
+                    role: data.data.role
+                }));
+                window.location.href = '/dashboard';
+            } else {
+                const msgs = data.errors?.length ? data.errors.join('<br>') : data.message;
+                alertBox.innerHTML = msgs;
+                alertBox.className = 'alert alert-danger';
+            }
+        } catch {
+            alertBox.textContent = 'Network error. Please try again.';
+            alertBox.className = 'alert alert-danger';
+        } finally {
+            btn.disabled = false;
+            spinner.classList.add('d-none');
+        }
+    });
+</script>
+}

@@ -1,0 +1,116 @@
+@page
+@model DashboardModel
+@{
+    ViewData["Title"] = "Dashboard";
+    ViewData["Page"] = "Dashboard";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0">Dashboard</h4>
+    <a href="/tasks" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>New Task</a>
+</div>
+
+<!-- Stat cards -->
+<div class="row g-3 mb-4" id="statsRow">
+    <div class="col-6 col-md-3">
+        <div class="card stat-card p-3" style="border-left-color:#0d6efd">
+            <div class="text-muted small">Total Tasks</div>
+            <div class="fs-3 fw-bold" id="statTotal">—</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card p-3" style="border-left-color:#198754">
+            <div class="text-muted small">Completed</div>
+            <div class="fs-3 fw-bold text-success" id="statCompleted">—</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card p-3" style="border-left-color:#fd7e14">
+            <div class="text-muted small">Pending</div>
+            <div class="fs-3 fw-bold text-warning" id="statPending">—</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card p-3" style="border-left-color:#dc3545">
+            <div class="text-muted small">Overdue</div>
+            <div class="fs-3 fw-bold text-danger" id="statOverdue">—</div>
+        </div>
+    </div>
+</div>
+
+<!-- Completion rate -->
+<div class="card p-3 mb-4">
+    <div class="d-flex justify-content-between mb-2">
+        <span class="fw-semibold">Completion Rate</span>
+        <span id="completionPct" class="fw-bold text-primary">—%</span>
+    </div>
+    <div class="progress" style="height:10px">
+        <div class="progress-bar bg-primary" id="completionBar" style="width:0%"></div>
+    </div>
+</div>
+
+<!-- Recent tasks -->
+<div class="card">
+    <div class="card-header bg-white fw-semibold">Recent Tasks</div>
+    <div class="card-body p-0">
+        <div id="recentTasksLoading" class="text-center p-4 text-muted">
+            <div class="spinner-border spinner-border-sm me-2"></div>Loading…
+        </div>
+        <table class="table table-hover mb-0 d-none" id="recentTable">
+            <thead class="table-light">
+                <tr>
+                    <th>Title</th><th>Priority</th><th>Status</th><th>Due Date</th>
+                </tr>
+            </thead>
+            <tbody id="recentBody"></tbody>
+        </table>
+        <div id="recentEmpty" class="text-center text-muted p-4 d-none">No tasks yet. <a href="/tasks">Create one!</a></div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const priorityBadge = p => `<span class="badge badge-priority-${p.toLowerCase()}">${p}</span>`;
+    const statusBadge = s => {
+        const cls = s === 'Pending' ? 'pending' : s === 'InProgress' ? 'inprogress' : 'completed';
+        return `<span class="badge badge-status-${cls}">${s}</span>`;
+    };
+
+    async function loadDashboard() {
+        const [summaryRes, reportRes] = await Promise.all([
+            apiFetch('/api/dashboard/summary'),
+            apiFetch('/api/dashboard/reports')
+        ]);
+        if (!summaryRes || !reportRes) return;
+
+        const sum = (await summaryRes.json()).data;
+        const rep = (await reportRes.json()).data;
+
+        document.getElementById('statTotal').textContent = sum.totalTasks;
+        document.getElementById('statCompleted').textContent = sum.completedTasks;
+        document.getElementById('statPending').textContent = sum.pendingTasks;
+        document.getElementById('statOverdue').textContent = sum.overdueTasks;
+        document.getElementById('completionPct').textContent = sum.completionRate + '%';
+        document.getElementById('completionBar').style.width = sum.completionRate + '%';
+
+        document.getElementById('recentTasksLoading').classList.add('d-none');
+
+        const tasks = rep.recentTasks || [];
+        if (tasks.length === 0) {
+            document.getElementById('recentEmpty').classList.remove('d-none');
+        } else {
+            const tbody = document.getElementById('recentBody');
+            tbody.innerHTML = tasks.map(t => `
+                <tr>
+                    <td>${t.title}</td>
+                    <td>${priorityBadge(t.priority)}</td>
+                    <td>${statusBadge(t.status)}</td>
+                    <td>${new Date(t.dueDate).toLocaleDateString()}</td>
+                </tr>`).join('');
+            document.getElementById('recentTable').classList.remove('d-none');
+        }
+    }
+
+    loadDashboard();
+</script>
+}

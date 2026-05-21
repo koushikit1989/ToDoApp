@@ -1,0 +1,8 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home";
+}
+<script>
+    window.location.href = localStorage.getItem('access_token') ? '/dashboard' : '/login';
+</script>

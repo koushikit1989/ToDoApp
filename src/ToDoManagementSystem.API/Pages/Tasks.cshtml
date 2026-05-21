@@ -1,0 +1,318 @@
+@page
+@model TasksPageModel
+@{
+    ViewData["Title"] = "My Tasks";
+    ViewData["Page"] = "Tasks";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="fw-bold mb-0">My Tasks</h4>
+    <button class="btn btn-primary btn-sm" onclick="openCreateModal()">
+        <i class="bi bi-plus-lg me-1"></i>New Task
+    </button>
+</div>
+
+<!-- Filters -->
+<div class="card p-3 mb-3">
+    <div class="row g-2">
+        <div class="col-md-3">
+            <select class="form-select form-select-sm" id="filterStatus" onchange="loadTasks()">
+                <option value="">All Statuses</option>
+                <option value="0">Pending</option>
+                <option value="1">In Progress</option>
+                <option value="2">Completed</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select class="form-select form-select-sm" id="filterPriority" onchange="loadTasks()">
+                <option value="">All Priorities</option>
+                <option value="1">Low</option>
+                <option value="2">Medium</option>
+                <option value="3">High</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <input type="text" class="form-control form-control-sm" id="filterSearch" placeholder="Search tasks…" oninput="debounceLoad()" />
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-outline-secondary btn-sm w-100" onclick="clearFilters()">Clear</button>
+        </div>
+    </div>
+</div>
+
+<!-- Task list -->
+<div class="card">
+    <div id="tasksLoading" class="text-center p-4 text-muted">
+        <div class="spinner-border spinner-border-sm me-2"></div>Loading…
+    </div>
+    <div id="tasksEmpty" class="text-center text-muted p-4 d-none">No tasks found.</div>
+    <div class="table-responsive d-none" id="tasksTableWrap">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Title</th><th>Priority</th><th>Status</th><th>Due Date</th><th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="tasksBody"></tbody>
+        </table>
+    </div>
+    <div class="card-footer bg-white d-flex justify-content-between align-items-center d-none" id="pagination">
+        <small class="text-muted" id="pageInfo"></small>
+        <div>
+            <button class="btn btn-outline-secondary btn-sm me-1" id="prevBtn" onclick="changePage(-1)">Previous</button>
+            <button class="btn btn-outline-secondary btn-sm" id="nextBtn" onclick="changePage(1)">Next</button>
+        </div>
+    </div>
+</div>
+
+<!-- Create / Edit Modal -->
+<div class="modal fade" id="taskModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">New Task</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="modalAlert" class="alert alert-danger d-none"></div>
+                <form id="taskForm">
+                    <input type="hidden" id="taskId" />
+                    <div class="mb-3">
+                        <label class="form-label">Title <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="taskTitle" maxlength="300" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" id="taskDesc" rows="2" maxlength="2000"></textarea>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label">Priority</label>
+                            <select class="form-select" id="taskPriority">
+                                <option value="1">Low</option>
+                                <option value="2" selected>Medium</option>
+                                <option value="3">High</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" id="taskStatus">
+                                <option value="0">Pending</option>
+                                <option value="1">In Progress</option>
+                                <option value="2">Completed</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Due Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="taskDueDate" required />
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-primary" id="saveBtn" onclick="saveTask()">
+                    <span id="saveSpinner" class="spinner-border spinner-border-sm d-none me-1"></span>
+                    Save
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete confirmation modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Task</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">Are you sure you want to delete this task?</div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-danger btn-sm" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let currentPage = 1;
+    const pageSize = 10;
+    let totalCount = 0;
+    let debounceTimer = null;
+
+    const priorityBadge = p => `<span class="badge badge-priority-${p.toLowerCase()}">${p}</span>`;
+    const statusBadge = s => {
+        const cls = s === 'Pending' ? 'pending' : s === 'InProgress' ? 'inprogress' : 'completed';
+        return `<span class="badge badge-status-${cls}">${s}</span>`;
+    };
+
+    function debounceLoad() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => loadTasks(), 400);
+    }
+
+    function clearFilters() {
+        document.getElementById('filterStatus').value = '';
+        document.getElementById('filterPriority').value = '';
+        document.getElementById('filterSearch').value = '';
+        currentPage = 1;
+        loadTasks();
+    }
+
+    async function loadTasks() {
+        document.getElementById('tasksLoading').classList.remove('d-none');
+        document.getElementById('tasksTableWrap').classList.add('d-none');
+        document.getElementById('tasksEmpty').classList.add('d-none');
+        document.getElementById('pagination').classList.add('d-none');
+
+        const status = document.getElementById('filterStatus').value;
+        const priority = document.getElementById('filterPriority').value;
+        const search = document.getElementById('filterSearch').value;
+
+        let url = `/api/tasks/filter?pageNumber=${currentPage}&pageSize=${pageSize}`;
+        if (status) url += `&status=${status}`;
+        if (priority) url += `&priority=${priority}`;
+        if (search) url += `&searchTerm=${encodeURIComponent(search)}`;
+
+        const res = await apiFetch(url);
+        if (!res) return;
+        const data = await res.json();
+        const paged = data.data;
+
+        document.getElementById('tasksLoading').classList.add('d-none');
+        totalCount = paged.totalCount;
+
+        if (!paged.items || paged.items.length === 0) {
+            document.getElementById('tasksEmpty').classList.remove('d-none');
+            return;
+        }
+
+        const tbody = document.getElementById('tasksBody');
+        tbody.innerHTML = paged.items.map(t => `
+            <tr>
+                <td>
+                    <div class="fw-semibold">${t.title}</div>
+                    ${t.description ? `<small class="text-muted">${t.description.substring(0,60)}${t.description.length>60?'…':''}</small>` : ''}
+                    ${t.isOverdue ? '<span class="badge bg-danger ms-1">Overdue</span>' : ''}
+                </td>
+                <td>${priorityBadge(t.priority)}</td>
+                <td>${statusBadge(t.status)}</td>
+                <td>${new Date(t.dueDate).toLocaleDateString()}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary me-1" onclick="openEditModal('${t.id}','${t.title.replace(/'/g,"\\'")}','${t.description||''}','${t.priority}','${t.status}','${t.dueDate}')">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="confirmDelete('${t.id}')">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>`).join('');
+
+        document.getElementById('tasksTableWrap').classList.remove('d-none');
+
+        // Pagination
+        const totalPages = Math.ceil(totalCount / pageSize);
+        if (totalPages > 1) {
+            document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages} (${totalCount} tasks)`;
+            document.getElementById('prevBtn').disabled = currentPage <= 1;
+            document.getElementById('nextBtn').disabled = currentPage >= totalPages;
+            document.getElementById('pagination').classList.remove('d-none');
+        }
+    }
+
+    function changePage(delta) {
+        currentPage += delta;
+        loadTasks();
+    }
+
+    function openCreateModal() {
+        document.getElementById('modalTitle').textContent = 'New Task';
+        document.getElementById('taskId').value = '';
+        document.getElementById('taskTitle').value = '';
+        document.getElementById('taskDesc').value = '';
+        document.getElementById('taskPriority').value = '2';
+        document.getElementById('taskStatus').value = '0';
+        // Default due date = tomorrow
+        const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+        document.getElementById('taskDueDate').value = tomorrow.toISOString().split('T')[0];
+        document.getElementById('modalAlert').classList.add('d-none');
+        new bootstrap.Modal(document.getElementById('taskModal')).show();
+    }
+
+    const priorityMap = { Low: '1', Medium: '2', High: '3' };
+    const statusMap   = { Pending: '0', InProgress: '1', Completed: '2' };
+
+    function openEditModal(id, title, desc, priority, status, dueDate) {
+        document.getElementById('modalTitle').textContent = 'Edit Task';
+        document.getElementById('taskId').value = id;
+        document.getElementById('taskTitle').value = title;
+        document.getElementById('taskDesc').value = desc;
+        document.getElementById('taskPriority').value = priorityMap[priority] || '2';
+        document.getElementById('taskStatus').value = statusMap[status] || '0';
+        document.getElementById('taskDueDate').value = dueDate.split('T')[0];
+        document.getElementById('modalAlert').classList.add('d-none');
+        new bootstrap.Modal(document.getElementById('taskModal')).show();
+    }
+
+    async function saveTask() {
+        const btn = document.getElementById('saveBtn');
+        const spinner = document.getElementById('saveSpinner');
+        const alert = document.getElementById('modalAlert');
+        const id = document.getElementById('taskId').value;
+
+        btn.disabled = true;
+        spinner.classList.remove('d-none');
+        alert.classList.add('d-none');
+
+        const payload = {
+            title: document.getElementById('taskTitle').value,
+            description: document.getElementById('taskDesc').value,
+            priority: parseInt(document.getElementById('taskPriority').value),
+            status: parseInt(document.getElementById('taskStatus').value),
+            dueDate: new Date(document.getElementById('taskDueDate').value).toISOString()
+        };
+
+        try {
+            const res = id
+                ? await apiFetch(`/api/tasks/${id}`, { method: 'PUT', body: JSON.stringify(payload) })
+                : await apiFetch('/api/tasks', { method: 'POST', body: JSON.stringify(payload) });
+
+            const data = await res.json();
+            if (data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('taskModal')).hide();
+                loadTasks();
+            } else {
+                const msgs = data.errors?.length ? data.errors.join('<br>') : data.message;
+                alert.innerHTML = msgs;
+                alert.classList.remove('d-none');
+            }
+        } catch {
+            alert.textContent = 'Network error.';
+            alert.classList.remove('d-none');
+        } finally {
+            btn.disabled = false;
+            spinner.classList.add('d-none');
+        }
+    }
+
+    let deleteTargetId = null;
+    function confirmDelete(id) {
+        deleteTargetId = id;
+        new bootstrap.Modal(document.getElementById('deleteModal')).show();
+    }
+
+    document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+        if (!deleteTargetId) return;
+        bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+        const res = await apiFetch(`/api/tasks/${deleteTargetId}`, { method: 'DELETE' });
+        if (res) loadTasks();
+        deleteTargetId = null;
+    });
+
+    loadTasks();
+</script>
+}

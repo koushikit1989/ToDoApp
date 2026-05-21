@@ -40,13 +40,13 @@ public class DashboardController : ControllerBase
         return Ok(ApiResponse<ReportResponse>.Ok(result));
     }
 
-    /// <summary>Exports task report as an Excel file.</summary>
+    /// <summary>Exports all tasks for the current user as an Excel file.</summary>
     [HttpGet("export")]
     [ProducesResponseType(typeof(FileContentResult), 200)]
     public async Task<IActionResult> Export([FromQuery] string format = "excel", CancellationToken ct = default)
     {
-        GetReportsQuery query = new() { UserId = GetCurrentUserId() };
-        ReportResponse report = await _mediator.Send(query, ct);
+        ExportTasksQuery query = new() { UserId = GetCurrentUserId() };
+        IEnumerable<TaskResponse> allTasks = await _mediator.Send(query, ct);
 
         using XLWorkbook workbook = new();
         IXLWorksheet sheet = workbook.Worksheets.Add("Tasks Report");
@@ -64,7 +64,7 @@ public class DashboardController : ControllerBase
 
         // Data rows
         int row = 2;
-        foreach (TaskResponse task in report.RecentTasks)
+        foreach (TaskResponse task in allTasks)
         {
             sheet.Cell(row, 1).Value = task.Title;
             sheet.Cell(row, 2).Value = task.Priority;

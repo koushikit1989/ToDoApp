@@ -21,6 +21,7 @@ builder.Services.AddInfrastructureServices(builder.Configuration);
 
 // API services
 builder.Services.AddControllers();
+builder.Services.AddRazorPages();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerWithJwt();
 builder.Services.AddAuthorization();
@@ -59,6 +60,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapRazorPages();
 app.MapHealthChecks("/health");
 app.UseHangfireDashboard("/hangfire");
 app.UseSwagger();
@@ -78,3 +80,6 @@ if (app.Environment.IsDevelopment())
     await app.MigrateDatabase();
 
 app.Run();
+
+// Exposes Program class for WebApplicationFactory in integration tests
+public partial class Program { }
