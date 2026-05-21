@@ -90,7 +90,7 @@
                             <label class="form-label">Priority</label>
                             <select class="form-select" id="taskPriority">
                                 <option value="1">Low</option>
-                                <option value="2" selected>Medium</option>
+                                <option value="2">Medium</option>
                                 <option value="3">High</option>
                             </select>
                         </div>
@@ -186,12 +186,13 @@
         document.getElementById('tasksLoading').classList.add('d-none');
         totalCount = paged.totalCount;
 
+        const tbody = document.getElementById('tasksBody');
+        tbody.innerHTML = '';
+
         if (!paged.items || paged.items.length === 0) {
             document.getElementById('tasksEmpty').classList.remove('d-none');
             return;
         }
-
-        const tbody = document.getElementById('tasksBody');
         tbody.innerHTML = paged.items.map(t => `
             <tr>
                 <td>
@@ -234,13 +235,13 @@
         document.getElementById('taskId').value = '';
         document.getElementById('taskTitle').value = '';
         document.getElementById('taskDesc').value = '';
-        document.getElementById('taskPriority').value = '2';
+        document.getElementById('taskPriority').value = '1';
         document.getElementById('taskStatus').value = '0';
         // Default due date = tomorrow
         const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
         document.getElementById('taskDueDate').value = tomorrow.toISOString().split('T')[0];
         document.getElementById('modalAlert').classList.add('d-none');
-        new bootstrap.Modal(document.getElementById('taskModal')).show();
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('taskModal')).show();
     }
 
     const priorityMap = { Low: '1', Medium: '2', High: '3' };
@@ -255,7 +256,7 @@
         document.getElementById('taskStatus').value = statusMap[status] || '0';
         document.getElementById('taskDueDate').value = dueDate.split('T')[0];
         document.getElementById('modalAlert').classList.add('d-none');
-        new bootstrap.Modal(document.getElementById('taskModal')).show();
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('taskModal')).show();
     }
 
     async function saveTask() {
@@ -302,14 +303,14 @@
     let deleteTargetId = null;
     function confirmDelete(id) {
         deleteTargetId = id;
-        new bootstrap.Modal(document.getElementById('deleteModal')).show();
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteModal')).show();
     }
 
     document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
         if (!deleteTargetId) return;
-        bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteModal')).hide();
         const res = await apiFetch(`/api/tasks/${deleteTargetId}`, { method: 'DELETE' });
-        if (res) loadTasks();
+        if (res) await loadTasks();
         deleteTargetId = null;
     });
 

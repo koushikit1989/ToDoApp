@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using ToDoManagementSystem.Persistence;
 using ToDoManagementSystem.Persistence.Context;
 
 namespace ToDoManagementSystem.API.Extensions;
@@ -12,5 +13,6 @@ public static class ApplicationBuilderExtensions
         using IServiceScope scope = app.Services.CreateScope();
         AppDbContext dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await dbContext.Database.MigrateAsync();
+        await DbInitializer.SeedAsync(dbContext);
     }
 }

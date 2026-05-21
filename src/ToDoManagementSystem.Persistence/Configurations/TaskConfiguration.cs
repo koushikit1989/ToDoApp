@@ -22,8 +22,7 @@ public class TaskConfiguration : IEntityTypeConfiguration<TaskItem>
         builder.Property(t => t.Priority)
             .IsRequired()
             .HasConversion<int>()
-            .HasDefaultValue(TaskPriority.Medium)
-            .HasSentinel(TaskPriority.Low);
+            .HasDefaultValue(TaskPriority.Medium);
 
         builder.Property(t => t.Status)
             .IsRequired()
