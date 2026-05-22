@@ -23,7 +23,7 @@
                 <option value="2">Completed</option>
             </select>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <select class="form-select form-select-sm" id="filterPriority" onchange="loadTasks()">
                 <option value="">All Priorities</option>
                 <option value="1">Low</option>
@@ -31,8 +31,13 @@
                 <option value="3">High</option>
             </select>
         </div>
-        <div class="col-md-4">
-            <input type="text" class="form-control form-control-sm" id="filterSearch" placeholder="Search tasks…" oninput="debounceLoad()" />
+        <div class="col-md-3">
+            <select class="form-select form-select-sm" id="filterProject" onchange="loadTasks()">
+                <option value="">All Projects</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <input type="text" class="form-control form-control-sm" id="filterSearch" placeholder="Search…" oninput="debounceLoad()" />
         </div>
         <div class="col-md-2">
             <button class="btn btn-outline-secondary btn-sm w-100" onclick="clearFilters()">Clear</button>
@@ -50,7 +55,7 @@
         <table class="table table-hover mb-0">
             <thead class="table-light">
                 <tr>
-                    <th>Title</th><th>Priority</th><th>Status</th><th>Due Date</th><th>Actions</th>
+                    <th>Title</th><th>Project</th><th>Priority</th><th>Status</th><th>Due Date</th><th>Actions</th>
                 </tr>
             </thead>
             <tbody id="tasksBody"></tbody>
@@ -104,6 +109,12 @@
                         </div>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label">Project</label>
+                        <select class="form-select" id="taskProject">
+                            <option value="">— No Project —</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">Due Date <span class="text-danger">*</span></label>
                         <input type="date" class="form-control" id="taskDueDate" required />
                     </div>
@@ -143,12 +154,28 @@
     const pageSize = 10;
     let totalCount = 0;
     let debounceTimer = null;
+    let allProjects = [];
 
     const priorityBadge = p => `<span class="badge badge-priority-${p.toLowerCase()}">${p}</span>`;
     const statusBadge = s => {
         const cls = s === 'Pending' ? 'pending' : s === 'InProgress' ? 'inprogress' : 'completed';
         return `<span class="badge badge-status-${cls}">${s}</span>`;
     };
+
+    async function loadProjects() {
+        const res = await apiFetch('/api/projects');
+        if (!res) return;
+        const data = await res.json();
+        allProjects = data.data || [];
+
+        const filterSel = document.getElementById('filterProject');
+        const modalSel = document.getElementById('taskProject');
+        const makeOption = p => `<option value="${p.id}">${p.projectName}${p.isActive ? '' : ' (Inactive)'}</option>`;
+        const opts = allProjects.map(makeOption).join('');
+
+        filterSel.innerHTML = '<option value="">All Projects</option>' + opts;
+        modalSel.innerHTML  = '<option value="">— No Project —</option>' + opts;
+    }
 
     function debounceLoad() {
         clearTimeout(debounceTimer);
@@ -158,6 +185,7 @@
     function clearFilters() {
         document.getElementById('filterStatus').value = '';
         document.getElementById('filterPriority').value = '';
+        document.getElementById('filterProject').value = '';
         document.getElementById('filterSearch').value = '';
         currentPage = 1;
         loadTasks();
@@ -169,14 +197,16 @@
         document.getElementById('tasksEmpty').classList.add('d-none');
         document.getElementById('pagination').classList.add('d-none');
 
-        const status = document.getElementById('filterStatus').value;
-        const priority = document.getElementById('filterPriority').value;
-        const search = document.getElementById('filterSearch').value;
+        const status    = document.getElementById('filterStatus').value;
+        const priority  = document.getElementById('filterPriority').value;
+        const projectId = document.getElementById('filterProject').value;
+        const search    = document.getElementById('filterSearch').value;
 
         let url = `/api/tasks/filter?pageNumber=${currentPage}&pageSize=${pageSize}`;
-        if (status) url += `&status=${status}`;
-        if (priority) url += `&priority=${priority}`;
-        if (search) url += `&searchTerm=${encodeURIComponent(search)}`;
+        if (status)    url += `&status=${status}`;
+        if (priority)  url += `&priority=${priority}`;
+        if (projectId) url += `&projectId=${projectId}`;
+        if (search)    url += `&searchTerm=${encodeURIComponent(search)}`;
 
         const res = await apiFetch(url);
         if (!res) return;
@@ -200,11 +230,13 @@
                     ${t.description ? `<small class="text-muted">${t.description.substring(0,60)}${t.description.length>60?'…':''}</small>` : ''}
                     ${t.isOverdue ? '<span class="badge bg-danger ms-1">Overdue</span>' : ''}
                 </td>
+                <td>${t.projectName ? `<span class="badge bg-info text-dark">${t.projectName}</span>` : '<span class="text-muted small">—</span>'}</td>
                 <td>${priorityBadge(t.priority)}</td>
                 <td>${statusBadge(t.status)}</td>
                 <td>${new Date(t.dueDate).toLocaleDateString()}</td>
                 <td>
-                    <button class="btn btn-sm btn-outline-primary me-1" onclick="openEditModal('${t.id}','${t.title.replace(/'/g,"\\'")}','${t.description||''}','${t.priority}','${t.status}','${t.dueDate}')">
+                    <button class="btn btn-sm btn-outline-primary me-1"
+                        onclick="openEditModal('${t.id}','${t.title.replace(/'/g,"\\'")}','${(t.description||'').replace(/'/g,"\\'")}','${t.priority}','${t.status}','${t.dueDate}','${t.projectId||''}')">
                         <i class="bi bi-pencil"></i>
                     </button>
                     <button class="btn btn-sm btn-outline-danger" onclick="confirmDelete('${t.id}')">
@@ -215,7 +247,6 @@
 
         document.getElementById('tasksTableWrap').classList.remove('d-none');
 
-        // Pagination
         const totalPages = Math.ceil(totalCount / pageSize);
         if (totalPages > 1) {
             document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages} (${totalCount} tasks)`;
@@ -235,9 +266,9 @@
         document.getElementById('taskId').value = '';
         document.getElementById('taskTitle').value = '';
         document.getElementById('taskDesc').value = '';
-        document.getElementById('taskPriority').value = '1';
+        document.getElementById('taskPriority').value = '2';
         document.getElementById('taskStatus').value = '0';
-        // Default due date = tomorrow
+        document.getElementById('taskProject').value = '';
         const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
         document.getElementById('taskDueDate').value = tomorrow.toISOString().split('T')[0];
         document.getElementById('modalAlert').classList.add('d-none');
@@ -247,7 +278,7 @@
     const priorityMap = { Low: '1', Medium: '2', High: '3' };
     const statusMap   = { Pending: '0', InProgress: '1', Completed: '2' };
 
-    function openEditModal(id, title, desc, priority, status, dueDate) {
+    function openEditModal(id, title, desc, priority, status, dueDate, projectId) {
         document.getElementById('modalTitle').textContent = 'Edit Task';
         document.getElementById('taskId').value = id;
         document.getElementById('taskTitle').value = title;
@@ -255,6 +286,7 @@
         document.getElementById('taskPriority').value = priorityMap[priority] || '2';
         document.getElementById('taskStatus').value = statusMap[status] || '0';
         document.getElementById('taskDueDate').value = dueDate.split('T')[0];
+        document.getElementById('taskProject').value = projectId || '';
         document.getElementById('modalAlert').classList.add('d-none');
         bootstrap.Modal.getOrCreateInstance(document.getElementById('taskModal')).show();
     }
@@ -262,19 +294,21 @@
     async function saveTask() {
         const btn = document.getElementById('saveBtn');
         const spinner = document.getElementById('saveSpinner');
-        const alert = document.getElementById('modalAlert');
+        const alertEl = document.getElementById('modalAlert');
         const id = document.getElementById('taskId').value;
 
         btn.disabled = true;
         spinner.classList.remove('d-none');
-        alert.classList.add('d-none');
+        alertEl.classList.add('d-none');
 
+        const projectId = document.getElementById('taskProject').value;
         const payload = {
-            title: document.getElementById('taskTitle').value,
-            description: document.getElementById('taskDesc').value,
-            priority: parseInt(document.getElementById('taskPriority').value),
-            status: parseInt(document.getElementById('taskStatus').value),
-            dueDate: new Date(document.getElementById('taskDueDate').value).toISOString()
+            title:       document.getElementById('taskTitle').value,
+            description: document.getElementById('taskDesc').value || null,
+            priority:    parseInt(document.getElementById('taskPriority').value),
+            status:      parseInt(document.getElementById('taskStatus').value),
+            dueDate:     new Date(document.getElementById('taskDueDate').value).toISOString(),
+            projectId:   projectId || null
         };
 
         try {
@@ -288,12 +322,12 @@
                 loadTasks();
             } else {
                 const msgs = data.errors?.length ? data.errors.join('<br>') : data.message;
-                alert.innerHTML = msgs;
-                alert.classList.remove('d-none');
+                alertEl.innerHTML = msgs;
+                alertEl.classList.remove('d-none');
             }
         } catch {
-            alert.textContent = 'Network error.';
-            alert.classList.remove('d-none');
+            alertEl.textContent = 'Network error.';
+            alertEl.classList.remove('d-none');
         } finally {
             btn.disabled = false;
             spinner.classList.add('d-none');
@@ -314,6 +348,6 @@
         deleteTargetId = null;
     });
 
-    loadTasks();
+    loadProjects().then(() => loadTasks());
 </script>
 }

@@ -46,5 +46,9 @@ public class TaskConfiguration : IEntityTypeConfiguration<TaskItem>
             .WithMany(u => u.Tasks)
             .HasForeignKey(t => t.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Property(t => t.ProjectId);
+
+        builder.HasIndex(t => t.ProjectId);
     }
 }

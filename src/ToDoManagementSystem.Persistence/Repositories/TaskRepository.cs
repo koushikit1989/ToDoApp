@@ -16,13 +16,19 @@ public class TaskRepository : GenericRepository<TaskItem>, ITaskRepository
     public async Task<IEnumerable<TaskItem>> GetByUserIdAsync(Guid userId, CancellationToken ct = default) =>
         await _dbSet.Where(t => t.UserId == userId).ToListAsync(ct);
 
-    /// <summary>Returns a filtered, paginated set of tasks with optional search, status, priority, and date filters.</summary>
+    /// <summary>Returns all non-deleted tasks for a user with their Project navigation loaded.</summary>
+    public async Task<IEnumerable<TaskItem>> GetByUserIdWithProjectAsync(Guid userId, CancellationToken ct = default) =>
+        await _dbSet.Where(t => t.UserId == userId)
+                    .Include(t => t.Project)
+                    .ToListAsync(ct);
+
+    /// <summary>Returns a filtered, paginated set of tasks with optional search, status, priority, project, and date filters.</summary>
     public async Task<(IEnumerable<TaskItem> Items, int TotalCount)> GetFilteredAsync(
         Guid userId,
         TaskFilterRequest filter,
         CancellationToken ct = default)
     {
-        IQueryable<TaskItem> query = _dbSet.Where(t => t.UserId == userId);
+        IQueryable<TaskItem> query = _dbSet.Where(t => t.UserId == userId).Include(t => t.Project);
 
         if (filter.Status.HasValue)
             query = query.Where(t => (int)t.Status == filter.Status.Value);
@@ -35,6 +41,9 @@ public class TaskRepository : GenericRepository<TaskItem>, ITaskRepository
 
         if (filter.DueDateTo.HasValue)
             query = query.Where(t => t.DueDate <= filter.DueDateTo.Value);
+
+        if (filter.ProjectId.HasValue)
+            query = query.Where(t => t.ProjectId == filter.ProjectId.Value);
 
         if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
         {

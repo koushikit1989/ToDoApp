@@ -22,6 +22,60 @@ namespace ToDoManagementSystem.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("ToDoManagementSystem.Domain.Entities.Project", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("ProjectCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("ProjectName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("ProjectName")
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.ToTable("Projects");
+                });
+
             modelBuilder.Entity("ToDoManagementSystem.Domain.Entities.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -83,6 +137,9 @@ namespace ToDoManagementSystem.Persistence.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(2);
 
+                    b.Property<Guid?>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("Status")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
@@ -100,6 +157,8 @@ namespace ToDoManagementSystem.Persistence.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
 
                     b.HasIndex("UserId");
 
@@ -158,6 +217,16 @@ namespace ToDoManagementSystem.Persistence.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("ToDoManagementSystem.Domain.Entities.Project", b =>
+                {
+                    b.HasOne("ToDoManagementSystem.Domain.Entities.User", "Creator")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Creator");
+                });
+
             modelBuilder.Entity("ToDoManagementSystem.Domain.Entities.RefreshToken", b =>
                 {
                     b.HasOne("ToDoManagementSystem.Domain.Entities.User", "User")
@@ -171,13 +240,25 @@ namespace ToDoManagementSystem.Persistence.Migrations
 
             modelBuilder.Entity("ToDoManagementSystem.Domain.Entities.TaskItem", b =>
                 {
+                    b.HasOne("ToDoManagementSystem.Domain.Entities.Project", "Project")
+                        .WithMany("Tasks")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("ToDoManagementSystem.Domain.Entities.User", "User")
                         .WithMany("Tasks")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("Project");
+
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("ToDoManagementSystem.Domain.Entities.Project", b =>
+                {
+                    b.Navigation("Tasks");
                 });
 
             modelBuilder.Entity("ToDoManagementSystem.Domain.Entities.User", b =>

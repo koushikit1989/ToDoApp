@@ -1,0 +1,291 @@
+@page
+@model ProjectsPageModel
+@{
+    ViewData["Title"] = "Projects";
+    ViewData["Page"] = "Projects";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="fw-bold mb-0">Projects</h4>
+    <button class="btn btn-primary btn-sm" onclick="openCreateModal()">
+        <i class="bi bi-plus-lg me-1"></i>New Project
+    </button>
+</div>
+
+<!-- Search & filter bar -->
+<div class="card p-3 mb-3">
+    <div class="row g-2">
+        <div class="col-md-4">
+            <input type="text" class="form-control form-control-sm" id="filterSearch"
+                   placeholder="Search projects…" oninput="debounceLoad()" />
+        </div>
+        <div class="col-md-3">
+            <select class="form-select form-select-sm" id="filterActive" onchange="loadProjects()">
+                <option value="">All Projects</option>
+                <option value="true">Active Only</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-outline-secondary btn-sm w-100" onclick="clearFilters()">Clear</button>
+        </div>
+    </div>
+</div>
+
+<!-- Project list -->
+<div class="card">
+    <div id="projectsLoading" class="text-center p-4 text-muted">
+        <div class="spinner-border spinner-border-sm me-2"></div>Loading…
+    </div>
+    <div id="projectsEmpty" class="text-center text-muted p-4 d-none">No projects found.</div>
+    <div class="table-responsive d-none" id="projectsTableWrap">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Project Name</th>
+                    <th>Code</th>
+                    <th>Status</th>
+                    <th>Tasks</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="projectsBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Create / Edit Modal -->
+<div class="modal fade" id="projectModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">New Project</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="modalAlert" class="alert alert-danger d-none"></div>
+                <form id="projectForm">
+                    <input type="hidden" id="projectId" />
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Project Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="projectName" maxlength="200" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Project Code</label>
+                            <input type="text" class="form-control" id="projectCode" maxlength="50" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" id="projectDesc" rows="3"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="projectStartDate" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="projectEndDate" />
+                        </div>
+                        <div class="col-12" id="statusRow" style="display:none">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="projectIsActive" checked />
+                                <label class="form-check-label" for="projectIsActive">Active</label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-primary" id="saveBtn" onclick="saveProject()">
+                    <span id="saveSpinner" class="spinner-border spinner-border-sm d-none me-1"></span>
+                    Save
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete confirmation modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Project</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">Are you sure you want to delete this project? Tasks assigned to it will become unassigned.</div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-danger btn-sm" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let debounceTimer = null;
+
+    function debounceLoad() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => loadProjects(), 400);
+    }
+
+    function clearFilters() {
+        document.getElementById('filterSearch').value = '';
+        document.getElementById('filterActive').value = '';
+        loadProjects();
+    }
+
+    async function loadProjects() {
+        document.getElementById('projectsLoading').classList.remove('d-none');
+        document.getElementById('projectsTableWrap').classList.add('d-none');
+        document.getElementById('projectsEmpty').classList.add('d-none');
+
+        const activeOnly = document.getElementById('filterActive').value;
+        const search = document.getElementById('filterSearch').value.toLowerCase();
+
+        let url = '/api/projects';
+        if (activeOnly === 'true') url += '?activeOnly=true';
+
+        const res = await apiFetch(url);
+        if (!res) return;
+        const data = await res.json();
+        let projects = data.data || [];
+
+        if (search) projects = projects.filter(p =>
+            p.projectName.toLowerCase().includes(search) ||
+            (p.projectCode && p.projectCode.toLowerCase().includes(search)));
+
+        document.getElementById('projectsLoading').classList.add('d-none');
+
+        if (projects.length === 0) {
+            document.getElementById('projectsEmpty').classList.remove('d-none');
+            return;
+        }
+
+        const tbody = document.getElementById('projectsBody');
+        tbody.innerHTML = projects.map(p => `
+            <tr>
+                <td>
+                    <div class="fw-semibold">${p.projectName}</div>
+                    ${p.description ? `<small class="text-muted">${p.description.substring(0,60)}${p.description.length>60?'…':''}</small>` : ''}
+                </td>
+                <td><span class="badge bg-secondary">${p.projectCode || '—'}</span></td>
+                <td>
+                    <span class="badge ${p.isActive ? 'bg-success' : 'bg-warning text-dark'}">
+                        ${p.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                </td>
+                <td><span class="badge bg-primary">${p.taskCount}</span></td>
+                <td>${p.startDate ? new Date(p.startDate).toLocaleDateString() : '—'}</td>
+                <td>${p.endDate ? new Date(p.endDate).toLocaleDateString() : '—'}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary me-1"
+                        onclick="openEditModal('${p.id}','${escStr(p.projectName)}','${escStr(p.projectCode||'')}','${escStr(p.description||'')}','${p.startDate||''}','${p.endDate||''}',${p.isActive})">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="confirmDelete('${p.id}')">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>`).join('');
+
+        document.getElementById('projectsTableWrap').classList.remove('d-none');
+    }
+
+    function escStr(s) { return s.replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+
+    function openCreateModal() {
+        document.getElementById('modalTitle').textContent = 'New Project';
+        document.getElementById('projectId').value = '';
+        document.getElementById('projectName').value = '';
+        document.getElementById('projectCode').value = '';
+        document.getElementById('projectDesc').value = '';
+        document.getElementById('projectStartDate').value = '';
+        document.getElementById('projectEndDate').value = '';
+        document.getElementById('projectIsActive').checked = true;
+        document.getElementById('statusRow').style.display = 'none';
+        document.getElementById('modalAlert').classList.add('d-none');
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('projectModal')).show();
+    }
+
+    function openEditModal(id, name, code, desc, startDate, endDate, isActive) {
+        document.getElementById('modalTitle').textContent = 'Edit Project';
+        document.getElementById('projectId').value = id;
+        document.getElementById('projectName').value = name;
+        document.getElementById('projectCode').value = code;
+        document.getElementById('projectDesc').value = desc;
+        document.getElementById('projectStartDate').value = startDate ? startDate.split('T')[0] : '';
+        document.getElementById('projectEndDate').value = endDate ? endDate.split('T')[0] : '';
+        document.getElementById('projectIsActive').checked = isActive;
+        document.getElementById('statusRow').style.display = 'block';
+        document.getElementById('modalAlert').classList.add('d-none');
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('projectModal')).show();
+    }
+
+    async function saveProject() {
+        const btn = document.getElementById('saveBtn');
+        const spinner = document.getElementById('saveSpinner');
+        const alertEl = document.getElementById('modalAlert');
+        const id = document.getElementById('projectId').value;
+
+        btn.disabled = true;
+        spinner.classList.remove('d-none');
+        alertEl.classList.add('d-none');
+
+        const startDateVal = document.getElementById('projectStartDate').value;
+        const endDateVal = document.getElementById('projectEndDate').value;
+
+        const payload = {
+            projectName: document.getElementById('projectName').value,
+            projectCode: document.getElementById('projectCode').value || null,
+            description: document.getElementById('projectDesc').value || null,
+            startDate: startDateVal ? new Date(startDateVal).toISOString() : null,
+            endDate: endDateVal ? new Date(endDateVal).toISOString() : null,
+            isActive: document.getElementById('projectIsActive').checked
+        };
+
+        try {
+            const res = id
+                ? await apiFetch(`/api/projects/${id}`, { method: 'PUT', body: JSON.stringify(payload) })
+                : await apiFetch('/api/projects', { method: 'POST', body: JSON.stringify(payload) });
+
+            const data = await res.json();
+            if (data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('projectModal')).hide();
+                loadProjects();
+            } else {
+                const msgs = data.errors?.length ? data.errors.join('<br>') : data.message;
+                alertEl.innerHTML = msgs;
+                alertEl.classList.remove('d-none');
+            }
+        } catch {
+            alertEl.textContent = 'Network error.';
+            alertEl.classList.remove('d-none');
+        } finally {
+            btn.disabled = false;
+            spinner.classList.add('d-none');
+        }
+    }
+
+    let deleteTargetId = null;
+    function confirmDelete(id) {
+        deleteTargetId = id;
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteModal')).show();
+    }
+
+    document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+        if (!deleteTargetId) return;
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteModal')).hide();
+        const res = await apiFetch(`/api/projects/${deleteTargetId}`, { method: 'DELETE' });
+        if (res) await loadProjects();
+        deleteTargetId = null;
+    });
+
+    loadProjects();
+</script>
+}

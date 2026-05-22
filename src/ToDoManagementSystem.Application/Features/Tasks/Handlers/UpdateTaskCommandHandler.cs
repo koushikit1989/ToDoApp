@@ -37,6 +37,7 @@ public class UpdateTaskCommandHandler : IRequestHandler<UpdateTaskCommand, TaskR
         if (request.Priority.HasValue) task.Priority = (TaskPriority)request.Priority.Value;
         if (request.Status.HasValue) task.Status = (DomainTaskStatus)request.Status.Value;
         if (request.DueDate.HasValue) task.DueDate = request.DueDate.Value;
+        if (request.ProjectId.HasValue) task.ProjectId = request.ProjectId.Value;
         task.UpdatedDate = DateTime.UtcNow;
 
         _taskRepository.Update(task);

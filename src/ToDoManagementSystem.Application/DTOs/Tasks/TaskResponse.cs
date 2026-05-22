@@ -13,4 +13,6 @@ public class TaskResponse
     public DateTime CreatedDate { get; set; }
     public DateTime? UpdatedDate { get; set; }
     public bool IsOverdue { get; set; }
+    public Guid? ProjectId { get; set; }
+    public string? ProjectName { get; set; }
 }

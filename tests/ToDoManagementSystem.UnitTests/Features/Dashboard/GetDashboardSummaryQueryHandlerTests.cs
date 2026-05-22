@@ -33,7 +33,7 @@ public class GetDashboardSummaryQueryHandlerTests
     {
         // Arrange
         Guid userId = Guid.NewGuid();
-        _taskRepoMock.Setup(r => r.GetByUserIdAsync(userId, default))
+        _taskRepoMock.Setup(r => r.GetByUserIdWithProjectAsync(userId, default))
             .ReturnsAsync(Enumerable.Empty<TaskItem>());
 
         GetDashboardSummaryQuery query = new() { UserId = userId };
@@ -63,7 +63,7 @@ public class GetDashboardSummaryQueryHandlerTests
             Make(DomainTaskStatus.Completed),
             Make(DomainTaskStatus.Completed)
         };
-        _taskRepoMock.Setup(r => r.GetByUserIdAsync(userId, default)).ReturnsAsync(tasks);
+        _taskRepoMock.Setup(r => r.GetByUserIdWithProjectAsync(userId, default)).ReturnsAsync(tasks);
 
         GetDashboardSummaryQuery query = new() { UserId = userId };
 
@@ -89,7 +89,7 @@ public class GetDashboardSummaryQueryHandlerTests
             Make(DomainTaskStatus.InProgress, past), // overdue
             Make(DomainTaskStatus.Completed, past)   // NOT overdue (completed)
         };
-        _taskRepoMock.Setup(r => r.GetByUserIdAsync(userId, default)).ReturnsAsync(tasks);
+        _taskRepoMock.Setup(r => r.GetByUserIdWithProjectAsync(userId, default)).ReturnsAsync(tasks);
 
         GetDashboardSummaryQuery query = new() { UserId = userId };
 
@@ -110,7 +110,7 @@ public class GetDashboardSummaryQueryHandlerTests
             Make(DomainTaskStatus.Completed),
             Make(DomainTaskStatus.Completed)
         };
-        _taskRepoMock.Setup(r => r.GetByUserIdAsync(userId, default)).ReturnsAsync(tasks);
+        _taskRepoMock.Setup(r => r.GetByUserIdWithProjectAsync(userId, default)).ReturnsAsync(tasks);
 
         GetDashboardSummaryQuery query = new() { UserId = userId };
 
@@ -131,7 +131,7 @@ public class GetDashboardSummaryQueryHandlerTests
             Make(DomainTaskStatus.Completed),
             Make(DomainTaskStatus.Pending)
         };
-        _taskRepoMock.Setup(r => r.GetByUserIdAsync(userId, default)).ReturnsAsync(tasks);
+        _taskRepoMock.Setup(r => r.GetByUserIdWithProjectAsync(userId, default)).ReturnsAsync(tasks);
 
         GetDashboardSummaryQuery query = new() { UserId = userId };
 

@@ -40,6 +40,16 @@ public class DashboardController : ControllerBase
         return Ok(ApiResponse<ReportResponse>.Ok(result));
     }
 
+    /// <summary>Returns project-wise task statistics for the current user.</summary>
+    [HttpGet("projects")]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<ProjectTaskSummary>>), 200)]
+    public async Task<IActionResult> GetProjectDashboard(CancellationToken ct)
+    {
+        GetProjectDashboardQuery query = new() { UserId = GetCurrentUserId() };
+        IEnumerable<ProjectTaskSummary> result = await _mediator.Send(query, ct);
+        return Ok(ApiResponse<IEnumerable<ProjectTaskSummary>>.Ok(result));
+    }
+
     /// <summary>Exports all tasks for the current user as an Excel file.</summary>
     [HttpGet("export")]
     [ProducesResponseType(typeof(FileContentResult), 200)]

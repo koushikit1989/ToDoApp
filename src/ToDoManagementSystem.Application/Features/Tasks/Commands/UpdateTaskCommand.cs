@@ -13,4 +13,5 @@ public class UpdateTaskCommand : IRequest<TaskResponse>
     public int? Priority { get; set; }
     public int? Status { get; set; }
     public DateTime? DueDate { get; set; }
+    public Guid? ProjectId { get; set; }
 }

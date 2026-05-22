@@ -35,7 +35,8 @@ public class CreateTaskCommandHandler : IRequestHandler<CreateTaskCommand, TaskR
             Priority = (TaskPriority)request.Priority,
             Status = DomainTaskStatus.Pending,
             DueDate = request.DueDate,
-            CreatedDate = DateTime.UtcNow
+            CreatedDate = DateTime.UtcNow,
+            ProjectId = request.ProjectId
         };
 
         await _taskRepository.AddAsync(task, cancellationToken);

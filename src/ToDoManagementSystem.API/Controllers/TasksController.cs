@@ -86,7 +86,8 @@ public class TasksController : ControllerBase
             Title = request.Title,
             Description = request.Description,
             Priority = request.Priority,
-            DueDate = request.DueDate
+            DueDate = request.DueDate,
+            ProjectId = request.ProjectId
         };
 
         TaskResponse result = await _mediator.Send(command, ct);
@@ -107,7 +108,8 @@ public class TasksController : ControllerBase
             Description = request.Description,
             Priority = request.Priority,
             Status = request.Status,
-            DueDate = request.DueDate
+            DueDate = request.DueDate,
+            ProjectId = request.ProjectId
         };
 
         TaskResponse result = await _mediator.Send(command, ct);

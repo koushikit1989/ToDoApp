@@ -11,4 +11,5 @@ public class CreateTaskCommand : IRequest<TaskResponse>
     public string? Description { get; set; }
     public int Priority { get; set; } = 2;
     public DateTime DueDate { get; set; }
+    public Guid? ProjectId { get; set; }
 }

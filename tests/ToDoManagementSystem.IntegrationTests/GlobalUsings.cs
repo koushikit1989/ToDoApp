@@ -4,6 +4,7 @@ global using System.Net.Http.Json;
 global using System.Text.Json;
 global using FluentAssertions;
 global using ToDoManagementSystem.Application.DTOs.Auth;
+global using ToDoManagementSystem.Application.DTOs.Projects;
 global using ToDoManagementSystem.Application.DTOs.Tasks;
 global using ToDoManagementSystem.Shared.Responses;
 global using Xunit;

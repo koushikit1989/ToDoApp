@@ -17,11 +17,24 @@ public class GetDashboardSummaryQueryHandler : IRequestHandler<GetDashboardSumma
         _taskRepository = taskRepository;
     }
 
-    /// <summary>Fetches user tasks and computes count aggregations.</summary>
+    /// <summary>Fetches user tasks and computes count aggregations including per-project summaries.</summary>
     public async Task<DashboardSummaryResponse> Handle(GetDashboardSummaryQuery request, CancellationToken cancellationToken)
     {
-        IEnumerable<TaskItem> tasks = await _taskRepository.GetByUserIdAsync(request.UserId, cancellationToken);
+        IEnumerable<TaskItem> tasks = await _taskRepository.GetByUserIdWithProjectAsync(request.UserId, cancellationToken);
         List<TaskItem> taskList = tasks.ToList();
+
+        IEnumerable<ProjectTaskSummary> projectSummaries = taskList
+            .Where(t => t.ProjectId.HasValue && t.Project is not null)
+            .GroupBy(t => t.ProjectId!.Value)
+            .Select(g => new ProjectTaskSummary
+            {
+                ProjectId = g.Key,
+                ProjectName = g.First().Project!.ProjectName,
+                TotalTasks = g.Count(),
+                CompletedTasks = g.Count(t => t.Status == DomainTaskStatus.Completed),
+                PendingTasks = g.Count(t => t.Status == DomainTaskStatus.Pending),
+                InProgressTasks = g.Count(t => t.Status == DomainTaskStatus.InProgress)
+            });
 
         return new DashboardSummaryResponse
         {
@@ -29,7 +42,8 @@ public class GetDashboardSummaryQueryHandler : IRequestHandler<GetDashboardSumma
             CompletedTasks = taskList.Count(t => t.Status == DomainTaskStatus.Completed),
             PendingTasks = taskList.Count(t => t.Status == DomainTaskStatus.Pending),
             InProgressTasks = taskList.Count(t => t.Status == DomainTaskStatus.InProgress),
-            OverdueTasks = taskList.Count(t => t.DueDate < DateTime.UtcNow && t.Status != DomainTaskStatus.Completed)
+            OverdueTasks = taskList.Count(t => t.DueDate < DateTime.UtcNow && t.Status != DomainTaskStatus.Completed),
+            ProjectTaskSummaries = projectSummaries
         };
     }
 }

@@ -30,4 +30,10 @@ public class TaskItem : BaseEntity
 
     /// <summary>Navigation: owner user.</summary>
     public User User { get; set; } = null!;
+
+    /// <summary>Optional project this task belongs to.</summary>
+    public Guid? ProjectId { get; set; }
+
+    /// <summary>Navigation: project.</summary>
+    public Project? Project { get; set; }
 }

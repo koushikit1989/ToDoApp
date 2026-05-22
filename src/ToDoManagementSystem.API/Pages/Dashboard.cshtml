@@ -49,6 +49,35 @@
     </div>
 </div>
 
+<!-- Project-wise task breakdown -->
+<div class="card mb-4">
+    <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
+        <span>Tasks by Project</span>
+        <a href="/projects" class="btn btn-outline-primary btn-sm"><i class="bi bi-folder me-1"></i>Manage Projects</a>
+    </div>
+    <div class="card-body p-0">
+        <div id="projectStatsLoading" class="text-center p-3 text-muted">
+            <div class="spinner-border spinner-border-sm me-2"></div>Loading…
+        </div>
+        <div id="projectStatsEmpty" class="text-center text-muted p-3 d-none">No project tasks yet.</div>
+        <div class="table-responsive d-none" id="projectStatsTable">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Project</th>
+                        <th>Total</th>
+                        <th>Completed</th>
+                        <th>Pending</th>
+                        <th>In Progress</th>
+                        <th>Completion</th>
+                    </tr>
+                </thead>
+                <tbody id="projectStatsBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
 <!-- Recent tasks -->
 <div class="card">
     <div class="card-header bg-white fw-semibold">Recent Tasks</div>
@@ -77,14 +106,16 @@
     };
 
     async function loadDashboard() {
-        const [summaryRes, reportRes] = await Promise.all([
+        const [summaryRes, reportRes, projectRes] = await Promise.all([
             apiFetch('/api/dashboard/summary'),
-            apiFetch('/api/dashboard/reports')
+            apiFetch('/api/dashboard/reports'),
+            apiFetch('/api/dashboard/projects')
         ]);
-        if (!summaryRes || !reportRes) return;
+        if (!summaryRes || !reportRes || !projectRes) return;
 
-        const sum = (await summaryRes.json()).data;
-        const rep = (await reportRes.json()).data;
+        const sum      = (await summaryRes.json()).data;
+        const rep      = (await reportRes.json()).data;
+        const projects = (await projectRes.json()).data || [];
 
         document.getElementById('statTotal').textContent = sum.totalTasks;
         document.getElementById('statCompleted').textContent = sum.completedTasks;
@@ -93,8 +124,31 @@
         document.getElementById('completionPct').textContent = sum.completionRate + '%';
         document.getElementById('completionBar').style.width = sum.completionRate + '%';
 
-        document.getElementById('recentTasksLoading').classList.add('d-none');
+        // Project stats
+        document.getElementById('projectStatsLoading').classList.add('d-none');
+        if (projects.length === 0) {
+            document.getElementById('projectStatsEmpty').classList.remove('d-none');
+        } else {
+            const pbody = document.getElementById('projectStatsBody');
+            pbody.innerHTML = projects.map(p => `
+                <tr>
+                    <td class="fw-semibold">${p.projectName}</td>
+                    <td><span class="badge bg-primary">${p.totalTasks}</span></td>
+                    <td><span class="badge bg-success">${p.completedTasks}</span></td>
+                    <td><span class="badge bg-warning text-dark">${p.pendingTasks}</span></td>
+                    <td><span class="badge bg-info text-dark">${p.inProgressTasks}</span></td>
+                    <td>
+                        <div class="progress" style="height:8px;min-width:80px">
+                            <div class="progress-bar bg-success" style="width:${p.completionRate}%"></div>
+                        </div>
+                        <small class="text-muted">${p.completionRate}%</small>
+                    </td>
+                </tr>`).join('');
+            document.getElementById('projectStatsTable').classList.remove('d-none');
+        }
 
+        // Recent tasks
+        document.getElementById('recentTasksLoading').classList.add('d-none');
         const tasks = rep.recentTasks || [];
         if (tasks.length === 0) {
             document.getElementById('recentEmpty').classList.remove('d-none');
@@ -102,7 +156,10 @@
             const tbody = document.getElementById('recentBody');
             tbody.innerHTML = tasks.map(t => `
                 <tr>
-                    <td>${t.title}</td>
+                    <td>
+                        ${t.title}
+                        ${t.projectName ? `<span class="badge bg-info text-dark ms-1">${t.projectName}</span>` : ''}
+                    </td>
                     <td>${priorityBadge(t.priority)}</td>
                     <td>${statusBadge(t.status)}</td>
                     <td>${new Date(t.dueDate).toLocaleDateString()}</td>
