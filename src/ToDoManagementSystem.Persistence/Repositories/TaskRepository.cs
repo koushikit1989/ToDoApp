@@ -22,6 +22,11 @@ public class TaskRepository : GenericRepository<TaskItem>, ITaskRepository
                     .Include(t => t.Project)
                     .ToListAsync(ct);
 
+    /// <summary>Returns a single task by id with its Project navigation loaded.</summary>
+    public async Task<TaskItem?> GetByIdWithProjectAsync(Guid id, CancellationToken ct = default) =>
+        await _dbSet.Include(t => t.Project)
+                    .FirstOrDefaultAsync(t => t.Id == id, ct);
+
     /// <summary>Returns a filtered, paginated set of tasks with optional search, status, priority, project, and date filters.</summary>
     public async Task<(IEnumerable<TaskItem> Items, int TotalCount)> GetFilteredAsync(
         Guid userId,

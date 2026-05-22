@@ -45,6 +45,7 @@ public class CreateTaskCommandHandler : IRequestHandler<CreateTaskCommand, TaskR
         Log.ForContext<CreateTaskCommandHandler>()
            .Information("Task created: {TaskId} for user: {UserId}", task.Id, request.UserId);
 
-        return _mapper.Map<TaskResponse>(task);
+        TaskItem saved = await _taskRepository.GetByIdWithProjectAsync(task.Id, cancellationToken) ?? task;
+        return _mapper.Map<TaskResponse>(saved);
     }
 }

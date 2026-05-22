@@ -18,6 +18,9 @@ public interface ITaskRepository : IRepository<TaskItem>
     /// <summary>Gets all non-deleted tasks belonging to a user with Project navigation loaded.</summary>
     Task<IEnumerable<TaskItem>> GetByUserIdWithProjectAsync(Guid userId, CancellationToken ct = default);
 
+    /// <summary>Gets a single task by id with its Project navigation loaded.</summary>
+    Task<TaskItem?> GetByIdWithProjectAsync(Guid id, CancellationToken ct = default);
+
     /// <summary>Gets tasks with DueDate within the next 24 hours that are not yet completed.</summary>
     Task<IEnumerable<TaskItem>> GetUpcomingDueTasksAsync(CancellationToken ct = default);
 
