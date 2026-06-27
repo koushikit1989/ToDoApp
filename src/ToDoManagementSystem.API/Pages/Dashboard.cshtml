@@ -5,6 +5,113 @@
     ViewData["Page"] = "Dashboard";
 }
 
+<style>
+    /* ── Tasks by Project rows ───────────────────────────── */
+    .proj-row {
+        padding: 16px 22px;
+        border-bottom: 1px solid rgba(0,0,0,.05);
+        transition: background .15s;
+    }
+    .proj-row:last-child { border-bottom: none; }
+    .proj-row:hover { background: rgba(102,126,234,.03); }
+    .proj-row-top {
+        display: flex; align-items: center;
+        justify-content: space-between;
+        margin-bottom: 11px; gap: 12px;
+    }
+    .proj-name-wrap { display: flex; align-items: center; gap: 10px; }
+    .proj-dot {
+        width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0;
+        box-shadow: 0 0 0 3px rgba(255,255,255,.9), 0 0 0 4px currentColor;
+    }
+    .proj-name { font-weight: 700; font-size: 13.5px; color: #1e2030; }
+    .proj-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+    .pchip {
+        display: inline-flex; align-items: center; gap: 4px;
+        font-size: 11px; font-weight: 700;
+        padding: 3px 10px; border-radius: 20px;
+    }
+    .pchip-total { background: rgba(102,126,234,.13); color: #667eea; }
+    .pchip-done  { background: rgba(17,153,142,.13);  color: #0d8a80; }
+    .pchip-pend  { background: rgba(247,151,30,.13);  color: #c97b10; }
+    .pchip-prog  { background: rgba(71,118,230,.13);  color: #4776E6; }
+    .proj-bar-row { display: flex; align-items: center; gap: 10px; }
+    .proj-bar-track {
+        flex: 1; height: 9px; background: #eef0f6;
+        border-radius: 999px; overflow: hidden;
+    }
+    .proj-bar-fill { height: 100%; border-radius: 999px; transition: width .9s ease; }
+    .proj-pct { font-size: 12px; font-weight: 800; min-width: 36px; text-align: right; }
+
+    /* ── Section header accent ───────────────────────────── */
+    .section-hdr {
+        display: flex; align-items: center;
+        justify-content: space-between;
+        padding: 14px 22px;
+        border-bottom: 1px solid rgba(0,0,0,.05);
+    }
+    .section-hdr-left { display: flex; align-items: center; gap: 10px; }
+    .section-hdr-icon {
+        width: 32px; height: 32px; border-radius: 9px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 15px;
+    }
+    .section-title { font-weight: 800; font-size: 14px; color: #1e2030; }
+
+    /* ── Recent task rows ────────────────────────────────── */
+    .task-row {
+        display: flex; align-items: center;
+        justify-content: space-between;
+        padding: 13px 22px;
+        border-bottom: 1px solid rgba(0,0,0,.05);
+        border-left: 3px solid transparent;
+        gap: 14px;
+        transition: background .15s;
+    }
+    .task-row:last-child { border-bottom: none; }
+    .task-row:hover { background: rgba(102,126,234,.03); }
+    .task-pri-high   { border-left-color: #f85032; }
+    .task-pri-medium { border-left-color: #f7971e; }
+    .task-pri-low    { border-left-color: #11998e; }
+    .task-row-left { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+    .task-pri-box {
+        width: 34px; height: 34px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 15px; flex-shrink: 0;
+    }
+    .task-pri-high   .task-pri-box { background: rgba(248,80,50,.12);  color: #f85032; }
+    .task-pri-medium .task-pri-box { background: rgba(247,151,30,.12); color: #f7971e; }
+    .task-pri-low    .task-pri-box { background: rgba(17,153,142,.12); color: #11998e; }
+    .task-title { font-weight: 700; font-size: 13.5px; color: #1e2030; }
+    .task-proj-chip {
+        display: inline-flex; align-items: center;
+        font-size: 10px; font-weight: 700;
+        padding: 2px 8px; border-radius: 20px;
+        background: rgba(71,118,230,.1); color: #4776E6;
+        margin-left: 7px; vertical-align: middle; white-space: nowrap;
+    }
+    .task-row-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .task-status {
+        display: inline-flex; align-items: center; gap: 5px;
+        font-size: 11px; font-weight: 700;
+        padding: 4px 11px; border-radius: 20px;
+    }
+    .ts-pending    { background: #f0f2f5; color: #6c757d; }
+    .ts-inprogress { background: linear-gradient(135deg,#4776E6,#8E54E9); color: #fff; }
+    .ts-completed  { background: linear-gradient(135deg,#11998e,#38ef7d); color: #fff; }
+    .task-due {
+        font-size: 11.5px; color: #7b82a0;
+        display: flex; align-items: center; gap: 4px; white-space: nowrap;
+    }
+    .task-due-overdue { color: #f85032 !important; font-weight: 700; }
+    .view-all-link {
+        font-size: 12px; font-weight: 700; color: #667eea;
+        text-decoration: none; display: flex; align-items: center; gap: 3px;
+        transition: color .15s;
+    }
+    .view-all-link:hover { color: #764ba2; }
+</style>
+
 <!-- Welcome Banner -->
 <div class="rounded-4 mb-4 px-4 py-3 d-flex justify-content-between align-items-center"
      style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;box-shadow:0 4px 22px rgba(102,126,234,.4)">
@@ -86,76 +193,75 @@
 
 <!-- Tasks by Project -->
 <div class="card mb-4">
-    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3 px-4">
-        <div class="fw-bold">
-            <i class="bi bi-folder2-open me-2" style="color:#667eea"></i>Tasks by Project
+    <div class="section-hdr">
+        <div class="section-hdr-left">
+            <div class="section-hdr-icon" style="background:rgba(102,126,234,.12)">
+                <i class="bi bi-folder2-open" style="color:#667eea"></i>
+            </div>
+            <span class="section-title">Tasks by Project</span>
         </div>
         <a href="/projects" class="btn btn-sm fw-semibold"
-           style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none">
+           style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:8px;font-size:12px">
             <i class="bi bi-grid me-1"></i>Manage Projects
         </a>
     </div>
-    <div class="card-body p-0">
-        <div id="projectStatsLoading" class="text-center p-4 text-muted">
-            <div class="spinner-border spinner-border-sm me-2" style="color:#667eea"></div>Loading…
-        </div>
-        <div id="projectStatsEmpty" class="text-center text-muted p-4 d-none">
-            <i class="bi bi-folder-x fs-2 d-block mb-2"></i>No project tasks yet.
-        </div>
-        <div class="table-responsive d-none" id="projectStatsTable">
-            <table class="table table-hover mb-0">
-                <thead>
-                    <tr>
-                        <th class="ps-4">Project</th>
-                        <th>Total</th>
-                        <th>Completed</th>
-                        <th>Pending</th>
-                        <th>In Progress</th>
-                        <th class="pe-4">Completion</th>
-                    </tr>
-                </thead>
-                <tbody id="projectStatsBody"></tbody>
-            </table>
-        </div>
+    <div id="projectStatsLoading" class="text-center p-4 text-muted">
+        <div class="spinner-border spinner-border-sm me-2" style="color:#667eea"></div>Loading…
     </div>
+    <div id="projectStatsEmpty" class="text-center text-muted p-4 d-none">
+        <i class="bi bi-folder-x fs-2 d-block mb-2"></i>No project tasks yet.
+    </div>
+    <div id="projectStatsBody" class="d-none"></div>
 </div>
 
 <!-- Recent Tasks -->
 <div class="card">
-    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3 px-4">
-        <div class="fw-bold">
-            <i class="bi bi-clock-history me-2" style="color:#764ba2"></i>Recent Tasks
+    <div class="section-hdr">
+        <div class="section-hdr-left">
+            <div class="section-hdr-icon" style="background:rgba(118,75,162,.12)">
+                <i class="bi bi-clock-history" style="color:#764ba2"></i>
+            </div>
+            <span class="section-title">Recent Tasks</span>
         </div>
+        <a href="/tasks" class="view-all-link">
+            View all <i class="bi bi-arrow-right"></i>
+        </a>
     </div>
-    <div class="card-body p-0">
-        <div id="recentTasksLoading" class="text-center p-4 text-muted">
-            <div class="spinner-border spinner-border-sm me-2" style="color:#667eea"></div>Loading…
-        </div>
-        <table class="table table-hover mb-0 d-none" id="recentTable">
-            <thead>
-                <tr>
-                    <th class="ps-4">Title</th>
-                    <th>Priority</th>
-                    <th>Status</th>
-                    <th class="pe-4">Due Date</th>
-                </tr>
-            </thead>
-            <tbody id="recentBody"></tbody>
-        </table>
-        <div id="recentEmpty" class="text-center text-muted p-4 d-none">
-            <i class="bi bi-inbox fs-2 d-block mb-2"></i>
-            No tasks yet. <a href="/tasks" style="color:#667eea;text-decoration:none;font-weight:600">Create one!</a>
-        </div>
+    <div id="recentTasksLoading" class="text-center p-4 text-muted">
+        <div class="spinner-border spinner-border-sm me-2" style="color:#667eea"></div>Loading…
+    </div>
+    <div id="recentBody" class="d-none"></div>
+    <div id="recentEmpty" class="text-center text-muted p-4 d-none">
+        <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+        No tasks yet. <a href="/tasks" style="color:#667eea;text-decoration:none;font-weight:600">Create one!</a>
     </div>
 </div>
 
 @section Scripts {
 <script>
-    const priorityBadge = p => `<span class="badge badge-priority-${p.toLowerCase()}">${p}</span>`;
-    const statusBadge = s => {
-        const cls = s === 'Pending' ? 'pending' : s === 'InProgress' ? 'inprogress' : 'completed';
-        return `<span class="badge badge-status-${cls}">${s === 'InProgress' ? 'In Progress' : s}</span>`;
+    // Cycling accent palette for projects
+    const PROJECT_PALETTE = [
+        { dot: '#667eea', bar: 'linear-gradient(90deg,#667eea,#764ba2)', pct: '#667eea' },
+        { dot: '#11998e', bar: 'linear-gradient(90deg,#11998e,#38ef7d)', pct: '#11998e' },
+        { dot: '#f7971e', bar: 'linear-gradient(90deg,#f7971e,#ffd200)', pct: '#c97b10' },
+        { dot: '#e91e8c', bar: 'linear-gradient(90deg,#e91e8c,#f64f59)', pct: '#e91e8c' },
+        { dot: '#4776E6', bar: 'linear-gradient(90deg,#4776E6,#8E54E9)', pct: '#4776E6' },
+        { dot: '#00b09b', bar: 'linear-gradient(90deg,#00b09b,#96c93d)', pct: '#007a6b' },
+    ];
+
+    // Priority icon and class
+    const PRIORITY_META = {
+        High:   { cls: 'task-pri-high',   icon: 'bi-flag-fill' },
+        Medium: { cls: 'task-pri-medium', icon: 'bi-dash-circle-fill' },
+        Low:    { cls: 'task-pri-low',    icon: 'bi-arrow-down-circle-fill' },
     };
+
+    // Status pill
+    function statusPill(s) {
+        if (s === 'Completed')  return `<span class="task-status ts-completed"><i class="bi bi-check-circle-fill"></i> Completed</span>`;
+        if (s === 'InProgress') return `<span class="task-status ts-inprogress"><i class="bi bi-arrow-clockwise"></i> In Progress</span>`;
+        return `<span class="task-status ts-pending"><i class="bi bi-clock"></i> Pending</span>`;
+    }
 
     async function loadDashboard() {
         const [summaryRes, reportRes, projectRes] = await Promise.all([
@@ -178,48 +284,72 @@
             document.getElementById('completionBar').style.width = sum.completionRate + '%';
         }, 120);
 
-        // Project stats
+        // ── Project stats ──────────────────────────────────────
         document.getElementById('projectStatsLoading').classList.add('d-none');
         if (projects.length === 0) {
             document.getElementById('projectStatsEmpty').classList.remove('d-none');
         } else {
-            document.getElementById('projectStatsBody').innerHTML = projects.map(p => `
-                <tr>
-                    <td class="ps-4 fw-semibold">${p.projectName}</td>
-                    <td><span class="badge" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff">${p.totalTasks}</span></td>
-                    <td><span class="badge" style="background:linear-gradient(135deg,#11998e,#38ef7d);color:#fff">${p.completedTasks}</span></td>
-                    <td><span class="badge" style="background:linear-gradient(135deg,#f7971e,#ffd200);color:#1a1a1a">${p.pendingTasks}</span></td>
-                    <td><span class="badge" style="background:linear-gradient(135deg,#4776E6,#8E54E9);color:#fff">${p.inProgressTasks}</span></td>
-                    <td class="pe-4">
-                        <div class="d-flex align-items-center gap-2">
-                            <div class="progress flex-grow-1 rounded-pill" style="height:8px;background:#e9ecef;min-width:60px">
-                                <div class="progress-bar rounded-pill"
-                                     style="width:${p.completionRate}%;background:linear-gradient(90deg,#667eea,#764ba2)"></div>
-                            </div>
-                            <small class="text-muted fw-semibold" style="min-width:36px">${p.completionRate}%</small>
+            const el = document.getElementById('projectStatsBody');
+            el.innerHTML = projects.map((p, i) => {
+                const pal = PROJECT_PALETTE[i % PROJECT_PALETTE.length];
+                return `
+                <div class="proj-row">
+                    <div class="proj-row-top">
+                        <div class="proj-name-wrap">
+                            <span class="proj-dot" style="background:${pal.dot};color:${pal.dot}"></span>
+                            <span class="proj-name">${p.projectName}</span>
                         </div>
-                    </td>
-                </tr>`).join('');
-            document.getElementById('projectStatsTable').classList.remove('d-none');
+                        <div class="proj-chips">
+                            <span class="pchip pchip-total"><i class="bi bi-stack"></i>${p.totalTasks} Total</span>
+                            <span class="pchip pchip-done"><i class="bi bi-check2"></i>${p.completedTasks} Done</span>
+                            <span class="pchip pchip-pend"><i class="bi bi-clock"></i>${p.pendingTasks} Pending</span>
+                            <span class="pchip pchip-prog"><i class="bi bi-arrow-clockwise"></i>${p.inProgressTasks} In Progress</span>
+                        </div>
+                    </div>
+                    <div class="proj-bar-row">
+                        <div class="proj-bar-track">
+                            <div class="proj-bar-fill" style="width:${p.completionRate}%;background:${pal.bar}"></div>
+                        </div>
+                        <span class="proj-pct" style="color:${pal.pct}">${p.completionRate}%</span>
+                    </div>
+                </div>`;
+            }).join('');
+            el.classList.remove('d-none');
         }
 
-        // Recent tasks
+        // ── Recent tasks ───────────────────────────────────────
         document.getElementById('recentTasksLoading').classList.add('d-none');
         const tasks = rep.recentTasks || [];
         if (tasks.length === 0) {
             document.getElementById('recentEmpty').classList.remove('d-none');
         } else {
-            document.getElementById('recentBody').innerHTML = tasks.map(t => `
-                <tr>
-                    <td class="ps-4">
-                        <span class="fw-semibold">${t.title}</span>
-                        ${t.projectName ? `<span class="badge ms-1" style="background:linear-gradient(135deg,#4776E6,#8E54E9);color:#fff">${t.projectName}</span>` : ''}
-                    </td>
-                    <td>${priorityBadge(t.priority)}</td>
-                    <td>${statusBadge(t.status)}</td>
-                    <td class="pe-4 text-muted">${new Date(t.dueDate).toLocaleDateString()}</td>
-                </tr>`).join('');
-            document.getElementById('recentTable').classList.remove('d-none');
+            const now = new Date();
+            const el  = document.getElementById('recentBody');
+            el.innerHTML = tasks.map(t => {
+                const meta    = PRIORITY_META[t.priority] || PRIORITY_META.Medium;
+                const due     = new Date(t.dueDate);
+                const isOvd   = due < now && t.status !== 'Completed';
+                const dueStr  = due.toLocaleDateString('en-GB', { day:'numeric', month:'short' });
+                return `
+                <div class="task-row ${meta.cls}">
+                    <div class="task-row-left">
+                        <div class="task-pri-box"><i class="bi ${meta.icon}"></i></div>
+                        <div style="min-width:0">
+                            <div class="task-title">
+                                ${t.title}
+                                ${t.projectName ? `<span class="task-proj-chip">${t.projectName}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="task-row-right">
+                        ${statusPill(t.status)}
+                        <span class="task-due ${isOvd ? 'task-due-overdue' : ''}">
+                            <i class="bi bi-calendar3"></i>${dueStr}${isOvd ? ' <i class="bi bi-exclamation-circle-fill" style="font-size:11px"></i>' : ''}
+                        </span>
+                    </div>
+                </div>`;
+            }).join('');
+            el.classList.remove('d-none');
         }
     }
 
