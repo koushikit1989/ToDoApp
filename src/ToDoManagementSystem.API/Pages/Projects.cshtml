@@ -5,28 +5,135 @@
     ViewData["Page"] = "Projects";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="fw-bold mb-0">Projects</h4>
-    <button class="btn btn-primary btn-sm" onclick="openCreateModal()">
-        <i class="bi bi-plus-lg me-1"></i>New Project
+<style>
+    /* ── Page banner ──────────────────────────────── */
+    .page-banner {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 16px;
+        padding: 18px 22px;
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 22px rgba(102,126,234,.38);
+        color: #fff;
+    }
+    .page-banner h4 { font-size: 16px; font-weight: 800; margin: 0 0 3px; color: #fff; }
+    .page-banner p  { font-size: 12px; opacity: .82; margin: 0; }
+    .btn-banner {
+        background: rgba(255,255,255,.18); color: #fff;
+        border: 1px solid rgba(255,255,255,.3);
+        border-radius: 8px; padding: 7px 15px;
+        font-size: 12px; font-weight: 700;
+        cursor: pointer; display: flex; align-items: center; gap: 5px;
+        white-space: nowrap; flex-shrink: 0;
+        transition: background .18s;
+    }
+    .btn-banner:hover { background: rgba(255,255,255,.28); }
+
+    /* ── Filter bar ───────────────────────────────── */
+    .filter-header {
+        font-size: 11px; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .9px; color: #7b82a0;
+        display: flex; align-items: center; gap: 6px;
+        padding: 14px 18px 10px; border-bottom: 1px solid rgba(0,0,0,.05);
+    }
+    .filter-body { padding: 12px 18px; }
+    .form-select-sm, .form-control-sm {
+        border-radius: 8px; border: 1px solid #e0e3ef;
+        font-size: 12.5px; transition: border-color .18s, box-shadow .18s;
+    }
+    .form-select-sm:focus, .form-control-sm:focus {
+        border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,.14);
+        outline: none;
+    }
+    .btn-clear {
+        background: #f0f2f5; color: #495057;
+        border: 1px solid #dee2e6; border-radius: 8px;
+        font-size: 12px; font-weight: 600;
+        width: 100%; padding: 5px 0; cursor: pointer;
+        transition: all .15s;
+    }
+    .btn-clear:hover { background: rgba(102,126,234,.08); color: #667eea; border-color: #667eea; }
+
+    /* ── Table action buttons ─────────────────────── */
+    .btn-act {
+        width: 30px; height: 30px; border-radius: 8px; border: none;
+        display: inline-flex; align-items: center; justify-content: center;
+        font-size: 13px; cursor: pointer; transition: all .15s;
+    }
+    .btn-act-edit   { background: rgba(102,126,234,.1); color: #667eea; }
+    .btn-act-edit:hover   { background: rgba(102,126,234,.22); }
+    .btn-act-delete { background: rgba(231,56,39,.1); color: #e73827; }
+    .btn-act-delete:hover { background: rgba(231,56,39,.2); }
+
+    /* ── Project-specific badges ──────────────────── */
+    .badge-code     { background: #eef0f8; color: #5a6072; font-family: ui-monospace, monospace; letter-spacing: .3px; }
+    .badge-active   { background: linear-gradient(135deg,#11998e,#38ef7d); color:#fff; }
+    .badge-inactive { background: #e9ecef; color: #6c757d; }
+    .badge-tasks    { background: linear-gradient(135deg,#667eea,#764ba2); color:#fff; }
+    .date-cell      { font-size: 12.5px; color: #7b82a0; }
+
+    /* ── Modals ───────────────────────────────────── */
+    .modal-content  { border: none; border-radius: 16px; box-shadow: 0 8px 40px rgba(0,0,0,.18); }
+    .modal-header   { background: linear-gradient(135deg,#667eea,#764ba2); border-radius: 16px 16px 0 0; }
+    .modal-title    { color: #fff; font-size: 15px; font-weight: 700; }
+    .modal .btn-primary {
+        background: linear-gradient(135deg,#667eea,#764ba2);
+        border: none; border-radius: 8px; font-weight: 700;
+    }
+    .modal .btn-primary:disabled { opacity: .6; }
+    .modal .btn-danger { background: linear-gradient(135deg,#f85032,#e73827); border: none; border-radius: 8px; font-weight: 700; }
+    .modal .btn-secondary { border-radius: 8px; }
+    .modal .form-control, .modal .form-select, .modal .form-check-input {
+        border-radius: 8px; border-color: #e0e3ef; font-size: 13.5px;
+    }
+    .modal .form-control:focus, .modal .form-select:focus {
+        border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,.14);
+    }
+    .modal .form-check-input:checked {
+        background-color: #667eea; border-color: #667eea;
+    }
+    .modal .form-label { font-size: 12px; font-weight: 700; color: #5a6072; text-transform: uppercase; letter-spacing: .6px; }
+    .modal-footer { border-top: 1px solid rgba(0,0,0,.06); }
+    .modal-alert { border-radius: 8px; font-size: 13px; }
+    .status-switch-row {
+        background: #f8f9ff; border-radius: 10px; padding: 10px 14px;
+        border: 1px solid rgba(102,126,234,.15);
+    }
+    .status-switch-row .form-check-label { font-size: 13px; font-weight: 600; color: #495057; }
+</style>
+
+<!-- Page banner -->
+<div class="page-banner mb-4">
+    <div>
+        <h4>Projects</h4>
+        <p>Organise your work into focused project areas</p>
+    </div>
+    <button class="btn-banner" onclick="openCreateModal()">
+        <i class="bi bi-plus-lg"></i>New Project
     </button>
 </div>
 
 <!-- Search & filter bar -->
-<div class="card p-3 mb-3">
-    <div class="row g-2">
-        <div class="col-md-4">
-            <input type="text" class="form-control form-control-sm" id="filterSearch"
-                   placeholder="Search projects…" oninput="debounceLoad()" />
-        </div>
-        <div class="col-md-3">
-            <select class="form-select form-select-sm" id="filterActive" onchange="loadProjects()">
-                <option value="">All Projects</option>
-                <option value="true">Active Only</option>
-            </select>
-        </div>
-        <div class="col-md-2">
-            <button class="btn btn-outline-secondary btn-sm w-100" onclick="clearFilters()">Clear</button>
+<div class="card mb-3">
+    <div class="filter-header">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+        Filters
+    </div>
+    <div class="filter-body">
+        <div class="row g-2">
+            <div class="col-md-4">
+                <input type="text" class="form-control form-control-sm" id="filterSearch"
+                       placeholder="Search by name or code…" oninput="debounceLoad()" />
+            </div>
+            <div class="col-md-3">
+                <select class="form-select form-select-sm" id="filterActive" onchange="loadProjects()">
+                    <option value="">All Projects</option>
+                    <option value="true">Active Only</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn-clear" onclick="clearFilters()">Clear filters</button>
+            </div>
         </div>
     </div>
 </div>
@@ -34,20 +141,22 @@
 <!-- Project list -->
 <div class="card">
     <div id="projectsLoading" class="text-center p-4 text-muted">
-        <div class="spinner-border spinner-border-sm me-2"></div>Loading…
+        <div class="spinner-border spinner-border-sm me-2" style="color:#667eea"></div>Loading…
     </div>
-    <div id="projectsEmpty" class="text-center text-muted p-4 d-none">No projects found.</div>
+    <div id="projectsEmpty" class="text-center text-muted p-4 d-none">
+        <i class="bi bi-folder-x fs-2 d-block mb-2"></i>No projects found.
+    </div>
     <div class="table-responsive d-none" id="projectsTableWrap">
         <table class="table table-hover mb-0">
-            <thead class="table-light">
+            <thead>
                 <tr>
-                    <th>Project Name</th>
+                    <th class="ps-4">Project Name</th>
                     <th>Code</th>
                     <th>Status</th>
                     <th>Tasks</th>
                     <th>Start Date</th>
                     <th>End Date</th>
-                    <th>Actions</th>
+                    <th class="pe-4">Actions</th>
                 </tr>
             </thead>
             <tbody id="projectsBody"></tbody>
@@ -61,10 +170,10 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="modalTitle">New Project</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div id="modalAlert" class="alert alert-danger d-none"></div>
+                <div id="modalAlert" class="alert alert-danger modal-alert d-none"></div>
                 <form id="projectForm">
                     <input type="hidden" id="projectId" />
                     <div class="row g-3">
@@ -89,9 +198,9 @@
                             <input type="date" class="form-control" id="projectEndDate" />
                         </div>
                         <div class="col-12" id="statusRow" style="display:none">
-                            <div class="form-check form-switch">
+                            <div class="status-switch-row form-check form-switch">
                                 <input class="form-check-input" type="checkbox" id="projectIsActive" checked />
-                                <label class="form-check-label" for="projectIsActive">Active</label>
+                                <label class="form-check-label" for="projectIsActive">Project is Active</label>
                             </div>
                         </div>
                     </div>
@@ -101,7 +210,7 @@
                 <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button class="btn btn-primary" id="saveBtn" onclick="saveProject()">
                     <span id="saveSpinner" class="spinner-border spinner-border-sm d-none me-1"></span>
-                    Save
+                    Save Project
                 </button>
             </div>
         </div>
@@ -114,9 +223,11 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Delete Project</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">Are you sure you want to delete this project? Tasks assigned to it will become unassigned.</div>
+            <div class="modal-body" style="font-size:13.5px">
+                Are you sure? Tasks assigned to this project will become unassigned.
+            </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
                 <button class="btn btn-danger btn-sm" id="confirmDeleteBtn">Delete</button>
@@ -146,7 +257,7 @@
         document.getElementById('projectsEmpty').classList.add('d-none');
 
         const activeOnly = document.getElementById('filterActive').value;
-        const search = document.getElementById('filterSearch').value.toLowerCase();
+        const search     = document.getElementById('filterSearch').value.toLowerCase();
 
         let url = '/api/projects';
         if (activeOnly === 'true') url += '?activeOnly=true';
@@ -170,25 +281,29 @@
         const tbody = document.getElementById('projectsBody');
         tbody.innerHTML = projects.map(p => `
             <tr>
-                <td>
+                <td class="ps-4">
                     <div class="fw-semibold">${p.projectName}</div>
                     ${p.description ? `<small class="text-muted">${p.description.substring(0,60)}${p.description.length>60?'…':''}</small>` : ''}
                 </td>
-                <td><span class="badge bg-secondary">${p.projectCode || '—'}</span></td>
                 <td>
-                    <span class="badge ${p.isActive ? 'bg-success' : 'bg-warning text-dark'}">
+                    ${p.projectCode
+                        ? `<span class="badge badge-code">${p.projectCode}</span>`
+                        : '<span class="text-muted" style="font-size:12px">—</span>'}
+                </td>
+                <td>
+                    <span class="badge ${p.isActive ? 'badge-active' : 'badge-inactive'}">
                         ${p.isActive ? 'Active' : 'Inactive'}
                     </span>
                 </td>
-                <td><span class="badge bg-primary">${p.taskCount}</span></td>
-                <td>${p.startDate ? new Date(p.startDate).toLocaleDateString() : '—'}</td>
-                <td>${p.endDate ? new Date(p.endDate).toLocaleDateString() : '—'}</td>
-                <td>
-                    <button class="btn btn-sm btn-outline-primary me-1"
+                <td><span class="badge badge-tasks">${p.taskCount}</span></td>
+                <td class="date-cell">${p.startDate ? new Date(p.startDate).toLocaleDateString() : '—'}</td>
+                <td class="date-cell">${p.endDate   ? new Date(p.endDate).toLocaleDateString()   : '—'}</td>
+                <td class="pe-4">
+                    <button class="btn-act btn-act-edit me-1"
                         onclick="openEditModal('${p.id}','${escStr(p.projectName)}','${escStr(p.projectCode||'')}','${escStr(p.description||'')}','${p.startDate||''}','${p.endDate||''}',${p.isActive})">
                         <i class="bi bi-pencil"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="confirmDelete('${p.id}')">
+                    <button class="btn-act btn-act-delete" onclick="confirmDelete('${p.id}')">
                         <i class="bi bi-trash"></i>
                     </button>
                 </td>
@@ -220,7 +335,7 @@
         document.getElementById('projectCode').value = code;
         document.getElementById('projectDesc').value = desc;
         document.getElementById('projectStartDate').value = startDate ? startDate.split('T')[0] : '';
-        document.getElementById('projectEndDate').value = endDate ? endDate.split('T')[0] : '';
+        document.getElementById('projectEndDate').value   = endDate   ? endDate.split('T')[0]   : '';
         document.getElementById('projectIsActive').checked = isActive;
         document.getElementById('statusRow').style.display = 'block';
         document.getElementById('modalAlert').classList.add('d-none');
@@ -228,31 +343,31 @@
     }
 
     async function saveProject() {
-        const btn = document.getElementById('saveBtn');
+        const btn     = document.getElementById('saveBtn');
         const spinner = document.getElementById('saveSpinner');
         const alertEl = document.getElementById('modalAlert');
-        const id = document.getElementById('projectId').value;
+        const id      = document.getElementById('projectId').value;
 
         btn.disabled = true;
         spinner.classList.remove('d-none');
         alertEl.classList.add('d-none');
 
         const startDateVal = document.getElementById('projectStartDate').value;
-        const endDateVal = document.getElementById('projectEndDate').value;
+        const endDateVal   = document.getElementById('projectEndDate').value;
 
         const payload = {
             projectName: document.getElementById('projectName').value,
             projectCode: document.getElementById('projectCode').value || null,
             description: document.getElementById('projectDesc').value || null,
-            startDate: startDateVal ? new Date(startDateVal).toISOString() : null,
-            endDate: endDateVal ? new Date(endDateVal).toISOString() : null,
-            isActive: document.getElementById('projectIsActive').checked
+            startDate:   startDateVal ? new Date(startDateVal).toISOString() : null,
+            endDate:     endDateVal   ? new Date(endDateVal).toISOString()   : null,
+            isActive:    document.getElementById('projectIsActive').checked
         };
 
         try {
             const res = id
-                ? await apiFetch(`/api/projects/${id}`, { method: 'PUT', body: JSON.stringify(payload) })
-                : await apiFetch('/api/projects', { method: 'POST', body: JSON.stringify(payload) });
+                ? await apiFetch(`/api/projects/${id}`, { method: 'PUT',  body: JSON.stringify(payload) })
+                : await apiFetch('/api/projects',        { method: 'POST', body: JSON.stringify(payload) });
 
             const data = await res.json();
             if (data.success) {
