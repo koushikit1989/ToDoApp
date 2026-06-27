@@ -1,4 +1,4 @@
-# project-spec.md — Claude Code Prompt
+# project-spec.md — Claude Code Prompt.....
 
 ## Project: To-Do Management System
 **Type**: Production-Ready REST API  
