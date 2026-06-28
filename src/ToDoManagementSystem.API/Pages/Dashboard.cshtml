@@ -249,6 +249,10 @@
         { dot: '#00b09b', bar: 'linear-gradient(90deg,#00b09b,#96c93d)', pct: '#007a6b' },
     ];
 
+    function escHtml(s) {
+        return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
     // Priority icon and class
     const PRIORITY_META = {
         High:   { cls: 'task-pri-high',   icon: 'bi-flag-fill' },
@@ -297,7 +301,7 @@
                     <div class="proj-row-top">
                         <div class="proj-name-wrap">
                             <span class="proj-dot" style="background:${pal.dot};color:${pal.dot}"></span>
-                            <span class="proj-name">${p.projectName}</span>
+                            <span class="proj-name">${escHtml(p.projectName)}</span>
                         </div>
                         <div class="proj-chips">
                             <span class="pchip pchip-total"><i class="bi bi-stack"></i>${p.totalTasks} Total</span>
@@ -336,8 +340,8 @@
                         <div class="task-pri-box"><i class="bi ${meta.icon}"></i></div>
                         <div style="min-width:0">
                             <div class="task-title">
-                                ${t.title}
-                                ${t.projectName ? `<span class="task-proj-chip">${t.projectName}</span>` : ''}
+                                ${escHtml(t.title)}
+                                ${t.projectName ? `<span class="task-proj-chip">${escHtml(t.projectName)}</span>` : ''}
                             </div>
                         </div>
                     </div>

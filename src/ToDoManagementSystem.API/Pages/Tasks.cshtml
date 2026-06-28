@@ -279,12 +279,48 @@
     let totalCount = 0;
     let debounceTimer = null;
     let allProjects = [];
+    const taskStore = {};
 
-    const priorityBadge = p => `<span class="badge badge-priority-${p.toLowerCase()}">${p}</span>`;
+    function escHtml(s) {
+        return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    function buildProjectOptions(select, leadLabel) {
+        select.innerHTML = '';
+        const lead = document.createElement('option');
+        lead.value = '';
+        lead.textContent = leadLabel;
+        select.appendChild(lead);
+        for (const p of allProjects) {
+            const opt = document.createElement('option');
+            opt.value = p.id;
+            opt.textContent = p.projectName + (p.isActive ? '' : ' (Inactive)');
+            select.appendChild(opt);
+        }
+    }
+
+    function showFormErrors(el, data) {
+        el.innerHTML = '';
+        if (data.errors?.length) {
+            const ul = document.createElement('ul');
+            ul.style.cssText = 'margin:0;padding-left:1.2em';
+            data.errors.forEach(msg => {
+                const li = document.createElement('li');
+                li.textContent = msg;
+                ul.appendChild(li);
+            });
+            el.appendChild(ul);
+        } else {
+            el.textContent = data.message || 'An error occurred.';
+        }
+        el.classList.remove('d-none');
+    }
+
+    const priorityBadge = p => `<span class="badge badge-priority-${p.toLowerCase()}">${escHtml(p)}</span>`;
     const statusBadge = s => {
         const cls = s === 'Pending' ? 'pending' : s === 'InProgress' ? 'inprogress' : 'completed';
         const label = s === 'InProgress' ? 'In Progress' : s;
-        return `<span class="badge badge-status-${cls}">${label}</span>`;
+        return `<span class="badge badge-status-${cls}">${escHtml(label)}</span>`;
     };
 
     async function loadProjects() {
@@ -295,11 +331,8 @@
 
         const filterSel = document.getElementById('filterProject');
         const modalSel  = document.getElementById('taskProject');
-        const makeOption = p => `<option value="${p.id}">${p.projectName}${p.isActive ? '' : ' (Inactive)'}</option>`;
-        const opts = allProjects.map(makeOption).join('');
-
-        filterSel.innerHTML = '<option value="">All Projects</option>' + opts;
-        modalSel.innerHTML  = '<option value="">— No Project —</option>' + opts;
+        buildProjectOptions(filterSel, 'All Projects');
+        buildProjectOptions(modalSel,  '— No Project —');
     }
 
     function debounceLoad() {
@@ -349,24 +382,25 @@
             return;
         }
 
+        for (const t of paged.items) taskStore[t.id] = t;
+
         tbody.innerHTML = paged.items.map(t => `
             <tr>
                 <td class="ps-4">
-                    <div class="fw-semibold">${t.title}</div>
-                    ${t.description ? `<small class="text-muted">${t.description.substring(0,60)}${t.description.length>60?'…':''}</small>` : ''}
+                    <div class="fw-semibold">${escHtml(t.title)}</div>
+                    ${t.description ? `<small class="text-muted">${escHtml(t.description.substring(0,60))}${t.description.length>60?'…':''}</small>` : ''}
                     ${t.isOverdue ? '<span class="badge badge-overdue ms-1">Overdue</span>' : ''}
                 </td>
                 <td>
                     ${t.projectName
-                        ? `<span class="badge badge-proj">${t.projectName}</span>`
+                        ? `<span class="badge badge-proj">${escHtml(t.projectName)}</span>`
                         : '<span class="no-project-label">—</span>'}
                 </td>
                 <td>${priorityBadge(t.priority)}</td>
                 <td>${statusBadge(t.status)}</td>
                 <td class="text-muted" style="font-size:13px">${new Date(t.dueDate).toLocaleDateString()}</td>
                 <td class="pe-4">
-                    <button class="btn-act btn-act-edit me-1"
-                        onclick="openEditModal('${t.id}','${t.title.replace(/'/g,"\\'")}','${(t.description||'').replace(/'/g,"\\'")}','${t.priority}','${t.status}','${t.dueDate}','${t.projectId||''}')">
+                    <button class="btn-act btn-act-edit me-1" onclick="openEditModal('${t.id}')">
                         <i class="bi bi-pencil"></i>
                     </button>
                     <button class="btn-act btn-act-delete" onclick="confirmDelete('${t.id}')">
@@ -408,15 +442,17 @@
     const priorityMap = { Low: '1', Medium: '2', High: '3' };
     const statusMap   = { Pending: '0', InProgress: '1', Completed: '2' };
 
-    function openEditModal(id, title, desc, priority, status, dueDate, projectId) {
+    function openEditModal(id) {
+        const t = taskStore[id];
+        if (!t) return;
         document.getElementById('modalTitle').textContent = 'Edit Task';
         document.getElementById('taskId').value = id;
-        document.getElementById('taskTitle').value = title;
-        document.getElementById('taskDesc').value = desc;
-        document.getElementById('taskPriority').value = priorityMap[priority] || '2';
-        document.getElementById('taskStatus').value = statusMap[status] || '0';
-        document.getElementById('taskDueDate').value = dueDate.split('T')[0];
-        document.getElementById('taskProject').value = projectId || '';
+        document.getElementById('taskTitle').value = t.title;
+        document.getElementById('taskDesc').value = t.description || '';
+        document.getElementById('taskPriority').value = priorityMap[t.priority] || '2';
+        document.getElementById('taskStatus').value = statusMap[t.status] || '0';
+        document.getElementById('taskDueDate').value = t.dueDate.split('T')[0];
+        document.getElementById('taskProject').value = t.projectId || '';
         document.getElementById('modalAlert').classList.add('d-none');
         bootstrap.Modal.getOrCreateInstance(document.getElementById('taskModal')).show();
     }
@@ -451,9 +487,7 @@
                 bootstrap.Modal.getInstance(document.getElementById('taskModal')).hide();
                 loadTasks();
             } else {
-                const msgs = data.errors?.length ? data.errors.join('<br>') : data.message;
-                alertEl.innerHTML = msgs;
-                alertEl.classList.remove('d-none');
+                showFormErrors(alertEl, data);
             }
         } catch {
             alertEl.textContent = 'Network error.';

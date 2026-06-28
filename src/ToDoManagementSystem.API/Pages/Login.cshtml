@@ -425,7 +425,25 @@
 
         function showAlert(msg, type = 'danger') {
             const el = document.getElementById('authAlert');
-            el.innerHTML = msg;
+            el.textContent = msg;
+            el.className = `auth-alert alert alert-${type}`;
+        }
+
+        function showAlertList(msgs, type = 'danger') {
+            const el = document.getElementById('authAlert');
+            el.innerHTML = '';
+            if (msgs.length === 1) {
+                el.textContent = msgs[0];
+            } else {
+                const ul = document.createElement('ul');
+                ul.style.cssText = 'margin:0;padding-left:1.2em';
+                msgs.forEach(m => {
+                    const li = document.createElement('li');
+                    li.textContent = m;
+                    ul.appendChild(li);
+                });
+                el.appendChild(ul);
+            }
             el.className = `auth-alert alert alert-${type}`;
         }
 
@@ -539,8 +557,8 @@
                     }));
                     window.location.href = '/dashboard';
                 } else {
-                    const msgs = data.errors?.length ? data.errors.join('<br>') : (data.message || 'Registration failed.');
-                    showAlert(msgs);
+                    const msgs = data.errors?.length ? data.errors : [data.message || 'Registration failed.'];
+                    showAlertList(msgs);
                 }
             } catch {
                 showAlert('Network error. Please try again.');

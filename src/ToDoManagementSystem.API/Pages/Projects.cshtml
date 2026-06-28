@@ -240,6 +240,27 @@
 <script>
     let debounceTimer = null;
 
+    function escHtml(s) {
+        return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    function showFormErrors(el, data) {
+        el.innerHTML = '';
+        if (data.errors?.length) {
+            const ul = document.createElement('ul');
+            ul.style.cssText = 'margin:0;padding-left:1.2em';
+            data.errors.forEach(msg => {
+                const li = document.createElement('li');
+                li.textContent = msg;
+                ul.appendChild(li);
+            });
+            el.appendChild(ul);
+        } else {
+            el.textContent = data.message || 'An error occurred.';
+        }
+        el.classList.remove('d-none');
+    }
+
     function debounceLoad() {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => loadProjects(), 400);
@@ -282,12 +303,12 @@
         tbody.innerHTML = projects.map(p => `
             <tr>
                 <td class="ps-4">
-                    <div class="fw-semibold">${p.projectName}</div>
-                    ${p.description ? `<small class="text-muted">${p.description.substring(0,60)}${p.description.length>60?'…':''}</small>` : ''}
+                    <div class="fw-semibold">${escHtml(p.projectName)}</div>
+                    ${p.description ? `<small class="text-muted">${escHtml(p.description.substring(0,60))}${p.description.length>60?'…':''}</small>` : ''}
                 </td>
                 <td>
                     ${p.projectCode
-                        ? `<span class="badge badge-code">${p.projectCode}</span>`
+                        ? `<span class="badge badge-code">${escHtml(p.projectCode)}</span>`
                         : '<span class="text-muted" style="font-size:12px">—</span>'}
                 </td>
                 <td>
@@ -312,7 +333,7 @@
         document.getElementById('projectsTableWrap').classList.remove('d-none');
     }
 
-    function escStr(s) { return s.replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+    function escStr(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,"\\'"); }
 
     function openCreateModal() {
         document.getElementById('modalTitle').textContent = 'New Project';
@@ -374,9 +395,7 @@
                 bootstrap.Modal.getInstance(document.getElementById('projectModal')).hide();
                 loadProjects();
             } else {
-                const msgs = data.errors?.length ? data.errors.join('<br>') : data.message;
-                alertEl.innerHTML = msgs;
-                alertEl.classList.remove('d-none');
+                showFormErrors(alertEl, data);
             }
         } catch {
             alertEl.textContent = 'Network error.';
